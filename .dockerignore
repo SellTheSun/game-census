@@ -1,0 +1,15 @@
+*
+!Dockerfile
+!requirements.lock
+!pyproject.toml
+!LICENSE
+!tools/
+!tools/dev.py
+!build/
+!build/toolchain.lock.json
+!src/
+!src/**
+!tests/
+!tests/**
+**/__pycache__
+**/*.pyc

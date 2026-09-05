@@ -1,0 +1,4 @@
+# Keep source inputs consistent across Windows and Linux checkouts.
+* text=auto eol=lf
+# Evidence is unedited command output: preserve its original bytes and spacing.
+docs/build-tasks/**/evidence/** -text -whitespace

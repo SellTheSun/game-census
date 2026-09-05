@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+!.env.example
+outputs/
+work/
+data/
+backups/
+.pytest_cache/
+dist/
+config/local.json

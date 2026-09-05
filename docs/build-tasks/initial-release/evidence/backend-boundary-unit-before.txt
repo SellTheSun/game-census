@@ -1,0 +1,27 @@
+......FF                                                                 [100%]
+================================== FAILURES ===================================
+__________ test_single_sample_at_window_end_has_no_invented_duration __________
+
+    def test_single_sample_at_window_end_has_no_invented_duration():
+        result = calculate([sample(600,10)],START,START+timedelta(seconds=600),[policy()])
+        assert result["metrics"]["average_observed_ccu"] is None
+        assert result["coverage"]["covered_seconds"] == 0
+>       assert result["coverage"]["sample_count"] == 0
+E       assert 1 == 0
+
+tests\test_history.py:72: AssertionError
+____________ test_boundary_sample_belongs_only_to_the_next_window _____________
+
+    def test_boundary_sample_belongs_only_to_the_next_window():
+        boundary = START + timedelta(seconds=600)
+        samples = [sample(600,10)]
+        older = calculate(samples,START,boundary,[policy()])
+        newer = calculate(samples,boundary,boundary+timedelta(seconds=600),[policy()])
+>       assert older["coverage"]["sample_count"] == 0
+E       assert 1 == 0
+
+tests\test_history.py:81: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_history.py::test_single_sample_at_window_end_has_no_invented_duration
+FAILED tests/test_history.py::test_boundary_sample_belongs_only_to_the_next_window
+2 failed, 6 passed in 0.04s

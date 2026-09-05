@@ -1,0 +1,21 @@
+   Building game-census @ file:///C:/Users/bdgibby/Git/game-census
+      Built game-census @ file:///C:/Users/bdgibby/Git/game-census
+Prepared 1 package in 680ms
+Uninstalled 1 package in 1ms
+Installed 1 package in 6ms
+ ~ game-census==0.1.0 (from file:///C:/Users/bdgibby/Git/game-census)
+Building wheel...
+Successfully built work\repro-build\14a28b2e7cac4c8f9465d2647197b45f\first\game_census-0.1.0-py3-none-any.whl
+Building wheel...
+Successfully built work\repro-build\14a28b2e7cac4c8f9465d2647197b45f\second\game_census-0.1.0-py3-none-any.whl
+{
+  "status": "succeeded",
+  "canonical_artifact": "game_census-0.1.0-py3-none-any.whl",
+  "sha256": "aa5739abd882d95cb77a4acb84ffafe796dc8950d825f2d17e660fd390dfc7b2",
+  "identical_builds": 2,
+  "paths": [
+    "C:\\Users\\bdgibby\\Git\\game-census\\work\\repro-build\\14a28b2e7cac4c8f9465d2647197b45f\\first\\game_census-0.1.0-py3-none-any.whl",
+    "C:\\Users\\bdgibby\\Git\\game-census\\work\\repro-build\\14a28b2e7cac4c8f9465d2647197b45f\\second\\game_census-0.1.0-py3-none-any.whl"
+  ],
+  "runtime_assets_present": true
+}

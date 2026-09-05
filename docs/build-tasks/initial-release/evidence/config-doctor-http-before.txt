@@ -1,0 +1,149 @@
+..........................................................FFF            [100%]
+================================== FAILURES ===================================
+_____ test_docker_wrapper_rejects_container_loopback_bind_before_starting _____
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-135/test_docker_wrapper_rejects_co0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B43D212CF0>
+
+    def test_docker_wrapper_rejects_container_loopback_bind_before_starting(tmp_path, monkeypatch):
+        """Native loopback is valid, but Docker's published port cannot reach it."""
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        monkeypatch.setattr(driver, "run", lambda *_args, **_kwargs: "{}")
+        project = driver.Project("test-loopback")
+        project.config.mkdir(parents=True)
+        (project.config / "local.json").write_text(
+            json.dumps({"storage": {"database_url": DATABASE_URL}, "web": {"bind": "127.0.0.1"}}),
+            encoding="utf-8",
+        )
+>       with pytest.raises(driver.DriverError, match=r"web\.bind"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE DriverError
+
+tests\test_config_cli.py:363: Failed
+_ test_http_doctor_requires_actual_http_readiness_even_when_database_is_healthy[False] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-135/test_http_doctor_requires_actu0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B43C871C50>
+capsys = <_pytest.capture.CaptureFixture object at 0x000001B43D1F3980>
+reachable = False
+
+    @pytest.mark.parametrize("reachable", [False, True])
+    def test_http_doctor_requires_actual_http_readiness_even_when_database_is_healthy(tmp_path, monkeypatch, capsys, reachable):
+        import httpx
+        from game_census import cli
+    
+        class HealthyDatabase:
+            def __init__(self, _dsn):
+                pass
+    
+            def status(self):
+                return {"database": "ready"}
+    
+        requests = []
+    
+        def local_health_only(url, **kwargs):
+            requests.append(url)
+            assert url == "http://127.0.0.1:8000/health/ready"
+            assert 0 < kwargs["timeout"] <= 60
+            if not reachable:
+                raise httpx.ConnectError("Simulated refused localhost connection " + SECRET)
+            return httpx.Response(200, json={"status": "ready"}, request=httpx.Request("GET", url))
+    
+        monkeypatch.setattr(cli, "Database", HealthyDatabase)
+        monkeypatch.setattr(httpx, "get", local_health_only)
+>       result = cli.main(["--config", str(write_config(tmp_path)), "doctor", "--http"])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_config_cli.py:391: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\game_census\cli.py:43: in main
+    args = parser().parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\argparse.py:2009: in parse_args
+    self.error(msg)
+C:\Python314\Lib\argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='game-census', usage=None, description='Collect and display recorded Steam player counts.', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2, message = 'game-census: error: unrecognized arguments: --http\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+C:\Python314\Lib\argparse.py:2769: SystemExit
+---------------------------- Captured stderr call -----------------------------
+usage: game-census [-h] [--config CONFIG]
+                   {config,initialize,collect,report,apps,history,aggregate,serve,doctor} ...
+game-census: error: unrecognized arguments: --http
+_ test_http_doctor_requires_actual_http_readiness_even_when_database_is_healthy[True] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-135/test_http_doctor_requires_actu1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B43D1AB860>
+capsys = <_pytest.capture.CaptureFixture object at 0x000001B43D29D8B0>
+reachable = True
+
+    @pytest.mark.parametrize("reachable", [False, True])
+    def test_http_doctor_requires_actual_http_readiness_even_when_database_is_healthy(tmp_path, monkeypatch, capsys, reachable):
+        import httpx
+        from game_census import cli
+    
+        class HealthyDatabase:
+            def __init__(self, _dsn):
+                pass
+    
+            def status(self):
+                return {"database": "ready"}
+    
+        requests = []
+    
+        def local_health_only(url, **kwargs):
+            requests.append(url)
+            assert url == "http://127.0.0.1:8000/health/ready"
+            assert 0 < kwargs["timeout"] <= 60
+            if not reachable:
+                raise httpx.ConnectError("Simulated refused localhost connection " + SECRET)
+            return httpx.Response(200, json={"status": "ready"}, request=httpx.Request("GET", url))
+    
+        monkeypatch.setattr(cli, "Database", HealthyDatabase)
+        monkeypatch.setattr(httpx, "get", local_health_only)
+>       result = cli.main(["--config", str(write_config(tmp_path)), "doctor", "--http"])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_config_cli.py:391: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\game_census\cli.py:43: in main
+    args = parser().parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\argparse.py:2009: in parse_args
+    self.error(msg)
+C:\Python314\Lib\argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='game-census', usage=None, description='Collect and display recorded Steam player counts.', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2, message = 'game-census: error: unrecognized arguments: --http\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+C:\Python314\Lib\argparse.py:2769: SystemExit
+---------------------------- Captured stderr call -----------------------------
+usage: game-census [-h] [--config CONFIG]
+                   {config,initialize,collect,report,apps,history,aggregate,serve,doctor} ...
+game-census: error: unrecognized arguments: --http
+=========================== short test summary info ===========================
+FAILED tests/test_config_cli.py::test_docker_wrapper_rejects_container_loopback_bind_before_starting
+FAILED tests/test_config_cli.py::test_http_doctor_requires_actual_http_readiness_even_when_database_is_healthy[False]
+FAILED tests/test_config_cli.py::test_http_doctor_requires_actual_http_readiness_even_when_database_is_healthy[True]
+3 failed, 58 passed in 0.77s

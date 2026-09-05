@@ -1,0 +1,42 @@
+ Container game-census-local-web-run-078b025740d5 Creating 
+ Container game-census-local-web-run-078b025740d5 Created 
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_history_window_excludes_end_and_includes_start ______________
+
+scratch_database = (<test_bootstrap.SchemaDatabase object at 0x7722ad794830>, Settings(schema_version=1, storage=Storage(database_url=Sec...eb=Web(bind='0.0.0.0', publish_host='127.0.0.1', port=8000, refresh_seconds=60, max_points=2000, max_history_days=90)))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7722adb76190>
+
+    def test_history_window_excludes_end_and_includes_start(scratch_database,monkeypatch):
+        from datetime import datetime,timedelta
+        db,settings = scratch_database
+        collect_once(settings,db,transport=transport(count=99))
+        with db.connection() as conn:
+            boundary = conn.execute("SELECT observed_at FROM player_sample").fetchone()["observed_at"]
+        class FixedClock(datetime):
+            current = boundary
+            @classmethod
+            def now(cls,tz=None):
+                return cls.current
+        monkeypatch.setattr("game_census.db.datetime",FixedClock)
+        older = db.history(570,settings,hours=1)
+>       assert older["points"] == []
+E       AssertionError: assert [{'observed_a...r_count': 99}] == []
+E         
+E         Left contains one more item: {'observed_at': '2026-09-05T01:58:43.313261+00:00', 'player_count': 99}
+E         Use -v to get more diff
+
+tests/test_bootstrap.py:143: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_bootstrap.py::test_history_window_excludes_end_and_includes_start
+1 failed in 0.34s
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    from tools.dev import Project, ROOT; Project('local').compose(['run','--rm','--no-deps','--volume',str(ROOT / 'tests')+':/app/tests:ro','--volume',str(ROOT / 'src')+':/app/src:ro','--entrypoint','python','web','-m','pytest','tests/test_bootstrap.py::test_history_window_excludes_end_and_includes_start','-q'])
+                                         ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\bdgibby\Git\game-census\tools\dev.py", line 91, in compose
+    return run(["docker", "compose", "--project-name", self.name, "--file", "compose.yaml", *args], env=self.environment(), capture=capture)
+  File "C:\Users\bdgibby\Git\game-census\tools\dev.py", line 35, in run
+    raise DriverError(f"{command[0]} operation failed (exit {result.returncode}). Check Docker status, configuration, port availability and the preceding diagnostic.")
+tools.dev.DriverError: docker operation failed (exit 1). Check Docker status, configuration, port availability and the preceding diagnostic.

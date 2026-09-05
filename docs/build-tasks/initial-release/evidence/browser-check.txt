@@ -1,0 +1,29 @@
+{
+  "status": "succeeded",
+  "url": "http://127.0.0.1:8000",
+  "app_id": 570,
+  "observed_player_count": 408400,
+  "observed_at": "2026-09-05T01:45:18.547843Z",
+  "desktop": "1440x1080",
+  "mobile": "390x844",
+  "checks": [
+    "real stored count",
+    "keyboard skip link",
+    "tracked search",
+    "game navigation",
+    "keyboard chart",
+    "observation table",
+    "history window",
+    "methodology",
+    "status",
+    "unknown game",
+    "mobile overflow",
+    "no external requests",
+    "no browser errors",
+    "no collection from browsing"
+  ],
+  "screenshots": [
+    "C:\\Users\\bdgibby\\Documents\\Codex\\2026-09-04\\cr\\outputs\\first-usable\\desktop.png",
+    "C:\\Users\\bdgibby\\Documents\\Codex\\2026-09-04\\cr\\outputs\\first-usable\\mobile.png"
+  ]
+}

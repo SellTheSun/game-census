@@ -1,0 +1,11 @@
+{
+  "command": [
+    ".venv/Scripts/python.exe",
+    "tools/browser_check.py",
+    "--output-dir",
+    "C:/Users/bdgibby/Documents/Codex/2026-09-04/cr/outputs/first-usable/final-browser"
+  ],
+  "cwd": "C:/Users/bdgibby/Git/game-census",
+  "exit_code": 0,
+  "output": "final-browser-check.txt"
+}

@@ -1,0 +1,29 @@
+..........................................................F              [100%]
+================================== FAILURES ===================================
+_____ test_docker_wrapper_rejects_container_loopback_bind_before_starting _____
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-133/test_docker_wrapper_rejects_co0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000259FE3CE970>
+
+    def test_docker_wrapper_rejects_container_loopback_bind_before_starting(tmp_path, monkeypatch):
+        """Native loopback is valid, but Docker's published port cannot reach it."""
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        monkeypatch.setattr(driver, "run", lambda *_args, **_kwargs: "{}")
+        project = driver.Project("test-loopback")
+        project.config.mkdir(parents=True)
+        (project.config / "local.json").write_text(
+            json.dumps({"storage": {"database_url": DATABASE_URL}, "web": {"bind": "127.0.0.1"}}),
+            encoding="utf-8",
+        )
+>       with pytest.raises(driver.DriverError, match=r"web\.bind"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE DriverError
+
+tests\test_config_cli.py:363: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_config_cli.py::test_docker_wrapper_rejects_container_loopback_bind_before_starting
+1 failed, 58 passed in 0.73s

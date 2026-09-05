@@ -1,0 +1,53 @@
+............F......................F......F....                          [100%]
+================================== FAILURES ===================================
+_ test_generator_rejects_invalid_explicit_ids_before_creating_state[app_ids0] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-129/test_generator_rejects_invalid0')
+app_ids = []
+
+    @pytest.mark.parametrize("app_ids", [[], [0], [-1], [True], [570, 570], list(range(1, 27))])
+    def test_generator_rejects_invalid_explicit_ids_before_creating_state(tmp_path, app_ids):
+        path = tmp_path / "not-created" / "instance.json"
+>       with pytest.raises((ConfigurationError, ValidationError), match="app_ids"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (ConfigurationError, ValidationError)
+
+tests\test_config_cli.py:80: Failed
+___ test_schema_version_rejects_unsupported_and_wrongly_typed_values[True] ____
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-129/test_schema_version_rejects_un0')
+version = True
+
+    @pytest.mark.parametrize("version", [True, 2, "1"])
+    def test_schema_version_rejects_unsupported_and_wrongly_typed_values(tmp_path, version):
+        path = write_config(tmp_path, schema_version=version)
+>       with pytest.raises(ConfigurationError, match="schema_version"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ConfigurationError
+
+tests\test_config_cli.py:119: Failed
+______________ test_duplicate_json_setting_is_rejected_and_named ______________
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-129/test_duplicate_json_setting_is0')
+
+    def test_duplicate_json_setting_is_rejected_and_named(tmp_path):
+        path = tmp_path / "duplicate.json"
+        path.write_text(
+            '{"storage":{"database_url":' + json.dumps(DATABASE_URL) + '},'
+            '"tracking":{"app_ids":[570],"app_ids":[730]}}',
+            encoding="utf-8",
+        )
+        with pytest.raises(ConfigurationError) as error:
+            load_settings(path)
+        assert "duplicate" in str(error.value).lower()
+>       assert "app_ids" in str(error.value)
+E       AssertionError: assert 'app_ids' in 'Duplicate configuration setting. Remove the duplicate key and retry.'
+E        +  where 'Duplicate configuration setting. Remove the duplicate key and retry.' = str(ConfigurationError('Duplicate configuration setting. Remove the duplicate key and retry.'))
+E        +    where ConfigurationError('Duplicate configuration setting. Remove the duplicate key and retry.') = <ExceptionInfo ConfigurationError('Duplicate configuration setting. Remove the duplicate key and retry.') tblen=6>.value
+
+tests\test_config_cli.py:161: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_config_cli.py::test_generator_rejects_invalid_explicit_ids_before_creating_state[app_ids0]
+FAILED tests/test_config_cli.py::test_schema_version_rejects_unsupported_and_wrongly_typed_values[True]
+FAILED tests/test_config_cli.py::test_duplicate_json_setting_is_rejected_and_named
+3 failed, 44 passed in 0.21s

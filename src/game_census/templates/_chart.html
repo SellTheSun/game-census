@@ -1,0 +1,23 @@
+<section class="history-panel" aria-labelledby="history-title">
+  <div class="section-heading"><div><p class="eyebrow">Recorded by this instance</p><h2 id="history-title">Player activity</h2></div><div class="window-picker" aria-label="History window">{% for value, label in windows %}<a href="?hours={{ value }}" {% if hours == value %}aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</div></div>
+  <div class="chart-meta"><span><span class="legend-line"></span>Concurrent players</span><span>{{ history.coverage.sample_count|number }} observations <span class="meta-separator">/</span> {{ (history.coverage.coverage_ratio * 100)|round(1) }}% time coverage</span></div>
+  <div class="chart-shell" data-chart data-points="{{ chart.points|tojson|forceescape }}">
+    {% if chart.points %}
+    <svg class="activity-chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-labelledby="chart-title chart-description" tabindex="0">
+      <title id="chart-title">{{ game.name }} player observations over {{ hours }} hours</title><desc id="chart-description">{{ history.coverage.sample_count }} observations. {{ (history.coverage.coverage_ratio * 100)|round(1) }} percent time coverage. Blank spans are unobserved. Use left and right arrow keys to inspect observations, or open the data table below.</desc>
+      {% for tick in chart.ticks %}<line class="chart-grid" x1="64" x2="856" y1="{{ tick.y }}" y2="{{ tick.y }}"/><text class="chart-label" x="52" y="{{ tick.y + 4 }}" text-anchor="end">{{ tick.label }}</text>{% endfor %}
+      {% for path in chart.paths %}<polyline class="chart-line" points="{{ path }}"/>{% endfor %}
+      {% for point in chart.points %}<circle class="chart-point" cx="{{ point.x }}" cy="{{ point.y }}" r="{% if chart.points|length == 1 %}5{% else %}2.5{% endif %}"/>{% endfor %}
+      <line class="chart-cursor" x1="0" x2="0" y1="24" y2="220" visibility="hidden"/>
+      <circle class="chart-selected" cx="0" cy="0" r="6" visibility="hidden"/>
+      <text class="chart-label" x="64" y="251">{{ chart.start_label }}</text><text class="chart-label" x="856" y="251" text-anchor="end">{{ chart.end_label }}</text>
+    </svg>
+    <p class="chart-readout" aria-live="polite">{% if chart.points|length == 1 %}One recorded observation. More collections will build this history.{% else %}Hover over the chart or focus it and use ← → to inspect observations.{% endif %}</p>
+    {% else %}
+    <div class="chart-empty"><span class="empty-symbol" aria-hidden="true">∿</span><h3>No observations in this window</h3><p>History begins with the first successful collection. Try a longer window if this app was observed earlier.</p></div>
+    {% endif %}
+  </div>
+  <div class="history-metrics"><div><span>Observed peak · {{ hours }}h</span><strong>{{ history.metrics.observed_peak|number }}</strong></div><div><span>Average observed CCU</span><strong>{{ history.metrics.average_observed_ccu|number }}</strong></div><div><span>Covered time</span><strong>{{ (history.coverage.covered_seconds / 3600)|round(2) }}<small> hours</small></strong></div><div><span>Longest uncovered gap</span><strong>{{ (history.coverage.maximum_gap_seconds / 60)|round(1) }}<small> min</small></strong></div></div>
+  <p class="scope-note">Only acquired observations appear here. Lines join nearby samples; gaps remain blank. The average uses covered time only. <a href="/methodology">How these numbers work ↗</a></p>
+  <details class="data-table"><summary>View observation data <span>{{ history.points|length|number }} rows · UTC</span></summary><div class="table-scroll" role="region" aria-label="Player observations" tabindex="0"><table><caption class="sr-only">All returned observations in this history window</caption><thead><tr><th scope="col">Observed at (UTC)</th><th scope="col" class="numeric">Concurrent players</th></tr></thead><tbody>{% for point in history.points %}<tr><td>{{ point.observed_at|timestamp }}</td><td class="numeric">{{ point.player_count|number }}</td></tr>{% else %}<tr><td colspan="2">No observations in this window.</td></tr>{% endfor %}</tbody></table></div><a class="text-link" href="/api/v1/apps/{{ game.app_id }}/history?hours={{ hours }}">Open history as JSON ↗</a></details>
+</section>

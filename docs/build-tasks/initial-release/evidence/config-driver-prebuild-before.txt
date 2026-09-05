@@ -1,0 +1,331 @@
+..........................................................FFFFFFFF       [100%]
+================================== FAILURES ===================================
+_____ test_docker_wrapper_rejects_container_loopback_bind_before_starting _____
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_docker_wrapper_rejects_co0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4DBCCF30>
+
+    def test_docker_wrapper_rejects_container_loopback_bind_before_starting(tmp_path, monkeypatch):
+        """Native loopback is valid, but Docker's published port cannot reach it."""
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        monkeypatch.setattr(driver, "run", lambda *_args, **_kwargs: "{}")
+        project = driver.Project("test-loopback")
+        project.config.mkdir(parents=True)
+        (project.config / "local.json").write_text(
+            json.dumps({"storage": {"database_url": DATABASE_URL}, "web": {"bind": "127.0.0.1"}}),
+            encoding="utf-8",
+        )
+>       with pytest.raises(driver.DriverError, match=r"web\.bind"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE DriverError
+
+tests\test_config_cli.py:363: Failed
+_ test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments0-tracking.app_ids] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_quickstart_rejects_invali0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4A96FAF0>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000025E4E243B60>
+arguments = ['--app-id', '0'], setting = 'tracking.app_ids'
+
+    @pytest.mark.parametrize(
+        ("arguments", "setting"),
+        [
+            (["--app-id", "0"], "tracking.app_ids"),
+            (["--app-id", "-1"], "tracking.app_ids"),
+            (["--app-id", "4294967296"], "tracking.app_ids"),
+            (["--app-id", "570", "--app-id", "570"], "tracking.app_ids"),
+            ([part for value in range(1, 27) for part in ("--app-id", str(value))], "tracking.app_ids"),
+            (["--port", "80"], "web.port"),
+            (["--port", "65536"], "web.port"),
+        ],
+    )
+    def test_quickstart_rejects_invalid_operator_values_before_docker_build(tmp_path, monkeypatch, capsys, arguments, setting):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        side_effects = []
+        monkeypatch.setattr(driver, "doctor", lambda: None)
+        monkeypatch.setattr(driver.Project, "build", lambda self: side_effects.append("build"))
+        monkeypatch.setattr(driver.Project, "config_init", lambda self, *_args: side_effects.append("config_init"))
+        monkeypatch.setattr(driver.Project, "compose", lambda self, *_args, **_kwargs: side_effects.append("compose"))
+        monkeypatch.setattr(driver.Project, "app", lambda self, *_args: side_effects.append("app"))
+        monkeypatch.setattr(driver.Project, "environment", lambda self: {"GC_WEB_PORT": "8000"})
+    
+>       assert driver.main(["--instance", "invalid-input", "quickstart", "--once", *arguments]) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x0000025E4E2ECCA0>(['--instance', 'invalid-input', 'quickstart', '--once', '--app-id', '0'])
+E        +    where <function main at 0x0000025E4E2ECCA0> = <module 'game_census_dev_for_test' from 'C:\\Users\\bdgibby\\Git\\game-census\\tools\\dev.py'>.main
+
+tests\test_config_cli.py:393: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"operation": "quickstart", "instance": "game-census-invalid-input", "touches": ["C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali0\\data\\instances\\invalid-input", "game-census-invalid-input_postgres", "local Docker images and containers"], "app_ids": [0], "collection": "one manual run", "scheduler": "disabled"}
+{"status": "ready", "url": "http://127.0.0.1:8000", "configuration": "C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali0\\data\\instances\\invalid-input\\config\\local.json", "next_collection": "python tools/dev.py --instance invalid-input app collect --once", "scheduler": "disabled"}
+_ test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments1-tracking.app_ids] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_quickstart_rejects_invali1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4DFD2680>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000025E4E2F54F0>
+arguments = ['--app-id', '-1'], setting = 'tracking.app_ids'
+
+    @pytest.mark.parametrize(
+        ("arguments", "setting"),
+        [
+            (["--app-id", "0"], "tracking.app_ids"),
+            (["--app-id", "-1"], "tracking.app_ids"),
+            (["--app-id", "4294967296"], "tracking.app_ids"),
+            (["--app-id", "570", "--app-id", "570"], "tracking.app_ids"),
+            ([part for value in range(1, 27) for part in ("--app-id", str(value))], "tracking.app_ids"),
+            (["--port", "80"], "web.port"),
+            (["--port", "65536"], "web.port"),
+        ],
+    )
+    def test_quickstart_rejects_invalid_operator_values_before_docker_build(tmp_path, monkeypatch, capsys, arguments, setting):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        side_effects = []
+        monkeypatch.setattr(driver, "doctor", lambda: None)
+        monkeypatch.setattr(driver.Project, "build", lambda self: side_effects.append("build"))
+        monkeypatch.setattr(driver.Project, "config_init", lambda self, *_args: side_effects.append("config_init"))
+        monkeypatch.setattr(driver.Project, "compose", lambda self, *_args, **_kwargs: side_effects.append("compose"))
+        monkeypatch.setattr(driver.Project, "app", lambda self, *_args: side_effects.append("app"))
+        monkeypatch.setattr(driver.Project, "environment", lambda self: {"GC_WEB_PORT": "8000"})
+    
+>       assert driver.main(["--instance", "invalid-input", "quickstart", "--once", *arguments]) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x0000025E4E2BDB10>(['--instance', 'invalid-input', 'quickstart', '--once', '--app-id', '-1'])
+E        +    where <function main at 0x0000025E4E2BDB10> = <module 'game_census_dev_for_test' from 'C:\\Users\\bdgibby\\Git\\game-census\\tools\\dev.py'>.main
+
+tests\test_config_cli.py:393: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"operation": "quickstart", "instance": "game-census-invalid-input", "touches": ["C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali1\\data\\instances\\invalid-input", "game-census-invalid-input_postgres", "local Docker images and containers"], "app_ids": [-1], "collection": "one manual run", "scheduler": "disabled"}
+{"status": "ready", "url": "http://127.0.0.1:8000", "configuration": "C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali1\\data\\instances\\invalid-input\\config\\local.json", "next_collection": "python tools/dev.py --instance invalid-input app collect --once", "scheduler": "disabled"}
+_ test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments2-tracking.app_ids] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_quickstart_rejects_invali2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4E2E8350>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000025E4E266CF0>
+arguments = ['--app-id', '4294967296'], setting = 'tracking.app_ids'
+
+    @pytest.mark.parametrize(
+        ("arguments", "setting"),
+        [
+            (["--app-id", "0"], "tracking.app_ids"),
+            (["--app-id", "-1"], "tracking.app_ids"),
+            (["--app-id", "4294967296"], "tracking.app_ids"),
+            (["--app-id", "570", "--app-id", "570"], "tracking.app_ids"),
+            ([part for value in range(1, 27) for part in ("--app-id", str(value))], "tracking.app_ids"),
+            (["--port", "80"], "web.port"),
+            (["--port", "65536"], "web.port"),
+        ],
+    )
+    def test_quickstart_rejects_invalid_operator_values_before_docker_build(tmp_path, monkeypatch, capsys, arguments, setting):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        side_effects = []
+        monkeypatch.setattr(driver, "doctor", lambda: None)
+        monkeypatch.setattr(driver.Project, "build", lambda self: side_effects.append("build"))
+        monkeypatch.setattr(driver.Project, "config_init", lambda self, *_args: side_effects.append("config_init"))
+        monkeypatch.setattr(driver.Project, "compose", lambda self, *_args, **_kwargs: side_effects.append("compose"))
+        monkeypatch.setattr(driver.Project, "app", lambda self, *_args: side_effects.append("app"))
+        monkeypatch.setattr(driver.Project, "environment", lambda self: {"GC_WEB_PORT": "8000"})
+    
+>       assert driver.main(["--instance", "invalid-input", "quickstart", "--once", *arguments]) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x0000025E4E2BCD50>(['--instance', 'invalid-input', 'quickstart', '--once', '--app-id', '4294967296'])
+E        +    where <function main at 0x0000025E4E2BCD50> = <module 'game_census_dev_for_test' from 'C:\\Users\\bdgibby\\Git\\game-census\\tools\\dev.py'>.main
+
+tests\test_config_cli.py:393: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"operation": "quickstart", "instance": "game-census-invalid-input", "touches": ["C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali2\\data\\instances\\invalid-input", "game-census-invalid-input_postgres", "local Docker images and containers"], "app_ids": [4294967296], "collection": "one manual run", "scheduler": "disabled"}
+{"status": "ready", "url": "http://127.0.0.1:8000", "configuration": "C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali2\\data\\instances\\invalid-input\\config\\local.json", "next_collection": "python tools/dev.py --instance invalid-input app collect --once", "scheduler": "disabled"}
+_ test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments3-tracking.app_ids] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_quickstart_rejects_invali3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4E2E9B50>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000025E4E267150>
+arguments = ['--app-id', '570', '--app-id', '570'], setting = 'tracking.app_ids'
+
+    @pytest.mark.parametrize(
+        ("arguments", "setting"),
+        [
+            (["--app-id", "0"], "tracking.app_ids"),
+            (["--app-id", "-1"], "tracking.app_ids"),
+            (["--app-id", "4294967296"], "tracking.app_ids"),
+            (["--app-id", "570", "--app-id", "570"], "tracking.app_ids"),
+            ([part for value in range(1, 27) for part in ("--app-id", str(value))], "tracking.app_ids"),
+            (["--port", "80"], "web.port"),
+            (["--port", "65536"], "web.port"),
+        ],
+    )
+    def test_quickstart_rejects_invalid_operator_values_before_docker_build(tmp_path, monkeypatch, capsys, arguments, setting):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        side_effects = []
+        monkeypatch.setattr(driver, "doctor", lambda: None)
+        monkeypatch.setattr(driver.Project, "build", lambda self: side_effects.append("build"))
+        monkeypatch.setattr(driver.Project, "config_init", lambda self, *_args: side_effects.append("config_init"))
+        monkeypatch.setattr(driver.Project, "compose", lambda self, *_args, **_kwargs: side_effects.append("compose"))
+        monkeypatch.setattr(driver.Project, "app", lambda self, *_args: side_effects.append("app"))
+        monkeypatch.setattr(driver.Project, "environment", lambda self: {"GC_WEB_PORT": "8000"})
+    
+>       assert driver.main(["--instance", "invalid-input", "quickstart", "--once", *arguments]) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x0000025E4E2BEB90>(['--instance', 'invalid-input', 'quickstart', '--once', '--app-id', '570', ...])
+E        +    where <function main at 0x0000025E4E2BEB90> = <module 'game_census_dev_for_test' from 'C:\\Users\\bdgibby\\Git\\game-census\\tools\\dev.py'>.main
+
+tests\test_config_cli.py:393: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"operation": "quickstart", "instance": "game-census-invalid-input", "touches": ["C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali3\\data\\instances\\invalid-input", "game-census-invalid-input_postgres", "local Docker images and containers"], "app_ids": [570, 570], "collection": "one manual run", "scheduler": "disabled"}
+{"status": "ready", "url": "http://127.0.0.1:8000", "configuration": "C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali3\\data\\instances\\invalid-input\\config\\local.json", "next_collection": "python tools/dev.py --instance invalid-input app collect --once", "scheduler": "disabled"}
+_ test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments4-tracking.app_ids] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_quickstart_rejects_invali4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4E2BF1D0>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000025E4E3154A0>
+arguments = ['--app-id', '1', '--app-id', '2', '--app-id', '3', ...]
+setting = 'tracking.app_ids'
+
+    @pytest.mark.parametrize(
+        ("arguments", "setting"),
+        [
+            (["--app-id", "0"], "tracking.app_ids"),
+            (["--app-id", "-1"], "tracking.app_ids"),
+            (["--app-id", "4294967296"], "tracking.app_ids"),
+            (["--app-id", "570", "--app-id", "570"], "tracking.app_ids"),
+            ([part for value in range(1, 27) for part in ("--app-id", str(value))], "tracking.app_ids"),
+            (["--port", "80"], "web.port"),
+            (["--port", "65536"], "web.port"),
+        ],
+    )
+    def test_quickstart_rejects_invalid_operator_values_before_docker_build(tmp_path, monkeypatch, capsys, arguments, setting):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        side_effects = []
+        monkeypatch.setattr(driver, "doctor", lambda: None)
+        monkeypatch.setattr(driver.Project, "build", lambda self: side_effects.append("build"))
+        monkeypatch.setattr(driver.Project, "config_init", lambda self, *_args: side_effects.append("config_init"))
+        monkeypatch.setattr(driver.Project, "compose", lambda self, *_args, **_kwargs: side_effects.append("compose"))
+        monkeypatch.setattr(driver.Project, "app", lambda self, *_args: side_effects.append("app"))
+        monkeypatch.setattr(driver.Project, "environment", lambda self: {"GC_WEB_PORT": "8000"})
+    
+>       assert driver.main(["--instance", "invalid-input", "quickstart", "--once", *arguments]) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x0000025E4E2BF3D0>(['--instance', 'invalid-input', 'quickstart', '--once', '--app-id', '1', ...])
+E        +    where <function main at 0x0000025E4E2BF3D0> = <module 'game_census_dev_for_test' from 'C:\\Users\\bdgibby\\Git\\game-census\\tools\\dev.py'>.main
+
+tests\test_config_cli.py:393: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"operation": "quickstart", "instance": "game-census-invalid-input", "touches": ["C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali4\\data\\instances\\invalid-input", "game-census-invalid-input_postgres", "local Docker images and containers"], "app_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26], "collection": "one manual run", "scheduler": "disabled"}
+{"status": "ready", "url": "http://127.0.0.1:8000", "configuration": "C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali4\\data\\instances\\invalid-input\\config\\local.json", "next_collection": "python tools/dev.py --instance invalid-input app collect --once", "scheduler": "disabled"}
+_ test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments5-web.port] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_quickstart_rejects_invali5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4E302150>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000025E4E2E9D90>
+arguments = ['--port', '80'], setting = 'web.port'
+
+    @pytest.mark.parametrize(
+        ("arguments", "setting"),
+        [
+            (["--app-id", "0"], "tracking.app_ids"),
+            (["--app-id", "-1"], "tracking.app_ids"),
+            (["--app-id", "4294967296"], "tracking.app_ids"),
+            (["--app-id", "570", "--app-id", "570"], "tracking.app_ids"),
+            ([part for value in range(1, 27) for part in ("--app-id", str(value))], "tracking.app_ids"),
+            (["--port", "80"], "web.port"),
+            (["--port", "65536"], "web.port"),
+        ],
+    )
+    def test_quickstart_rejects_invalid_operator_values_before_docker_build(tmp_path, monkeypatch, capsys, arguments, setting):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        side_effects = []
+        monkeypatch.setattr(driver, "doctor", lambda: None)
+        monkeypatch.setattr(driver.Project, "build", lambda self: side_effects.append("build"))
+        monkeypatch.setattr(driver.Project, "config_init", lambda self, *_args: side_effects.append("config_init"))
+        monkeypatch.setattr(driver.Project, "compose", lambda self, *_args, **_kwargs: side_effects.append("compose"))
+        monkeypatch.setattr(driver.Project, "app", lambda self, *_args: side_effects.append("app"))
+        monkeypatch.setattr(driver.Project, "environment", lambda self: {"GC_WEB_PORT": "8000"})
+    
+>       assert driver.main(["--instance", "invalid-input", "quickstart", "--once", *arguments]) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x0000025E4E301BC0>(['--instance', 'invalid-input', 'quickstart', '--once', '--port', '80'])
+E        +    where <function main at 0x0000025E4E301BC0> = <module 'game_census_dev_for_test' from 'C:\\Users\\bdgibby\\Git\\game-census\\tools\\dev.py'>.main
+
+tests\test_config_cli.py:393: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"operation": "quickstart", "instance": "game-census-invalid-input", "touches": ["C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali5\\data\\instances\\invalid-input", "game-census-invalid-input_postgres", "local Docker images and containers"], "app_ids": [570], "collection": "one manual run", "scheduler": "disabled"}
+{"status": "ready", "url": "http://127.0.0.1:8000", "configuration": "C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali5\\data\\instances\\invalid-input\\config\\local.json", "next_collection": "python tools/dev.py --instance invalid-input app collect --once", "scheduler": "disabled"}
+_ test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments6-web.port] _
+
+tmp_path = WindowsPath('C:/Users/bdgibby/AppData/Local/Temp/pytest-of-bdgibby/pytest-134/test_quickstart_rejects_invali6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025E4E2C7F70>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000025E4E2EA690>
+arguments = ['--port', '65536'], setting = 'web.port'
+
+    @pytest.mark.parametrize(
+        ("arguments", "setting"),
+        [
+            (["--app-id", "0"], "tracking.app_ids"),
+            (["--app-id", "-1"], "tracking.app_ids"),
+            (["--app-id", "4294967296"], "tracking.app_ids"),
+            (["--app-id", "570", "--app-id", "570"], "tracking.app_ids"),
+            ([part for value in range(1, 27) for part in ("--app-id", str(value))], "tracking.app_ids"),
+            (["--port", "80"], "web.port"),
+            (["--port", "65536"], "web.port"),
+        ],
+    )
+    def test_quickstart_rejects_invalid_operator_values_before_docker_build(tmp_path, monkeypatch, capsys, arguments, setting):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(driver, "ROOT", tmp_path)
+        side_effects = []
+        monkeypatch.setattr(driver, "doctor", lambda: None)
+        monkeypatch.setattr(driver.Project, "build", lambda self: side_effects.append("build"))
+        monkeypatch.setattr(driver.Project, "config_init", lambda self, *_args: side_effects.append("config_init"))
+        monkeypatch.setattr(driver.Project, "compose", lambda self, *_args, **_kwargs: side_effects.append("compose"))
+        monkeypatch.setattr(driver.Project, "app", lambda self, *_args: side_effects.append("app"))
+        monkeypatch.setattr(driver.Project, "environment", lambda self: {"GC_WEB_PORT": "8000"})
+    
+>       assert driver.main(["--instance", "invalid-input", "quickstart", "--once", *arguments]) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x0000025E4E302980>(['--instance', 'invalid-input', 'quickstart', '--once', '--port', '65536'])
+E        +    where <function main at 0x0000025E4E302980> = <module 'game_census_dev_for_test' from 'C:\\Users\\bdgibby\\Git\\game-census\\tools\\dev.py'>.main
+
+tests\test_config_cli.py:393: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"operation": "quickstart", "instance": "game-census-invalid-input", "touches": ["C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali6\\data\\instances\\invalid-input", "game-census-invalid-input_postgres", "local Docker images and containers"], "app_ids": [570], "collection": "one manual run", "scheduler": "disabled"}
+{"status": "ready", "url": "http://127.0.0.1:8000", "configuration": "C:\\Users\\bdgibby\\AppData\\Local\\Temp\\pytest-of-bdgibby\\pytest-134\\test_quickstart_rejects_invali6\\data\\instances\\invalid-input\\config\\local.json", "next_collection": "python tools/dev.py --instance invalid-input app collect --once", "scheduler": "disabled"}
+=========================== short test summary info ===========================
+FAILED tests/test_config_cli.py::test_docker_wrapper_rejects_container_loopback_bind_before_starting
+FAILED tests/test_config_cli.py::test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments0-tracking.app_ids]
+FAILED tests/test_config_cli.py::test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments1-tracking.app_ids]
+FAILED tests/test_config_cli.py::test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments2-tracking.app_ids]
+FAILED tests/test_config_cli.py::test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments3-tracking.app_ids]
+FAILED tests/test_config_cli.py::test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments4-tracking.app_ids]
+FAILED tests/test_config_cli.py::test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments5-web.port]
+FAILED tests/test_config_cli.py::test_quickstart_rejects_invalid_operator_values_before_docker_build[arguments6-web.port]
+8 failed, 58 passed in 0.74s

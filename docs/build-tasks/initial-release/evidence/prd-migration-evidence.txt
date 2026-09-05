@@ -1,0 +1,58 @@
+Game Census PRD/PRS authoring evidence
+Date: 2026-09-04
+Working directory: C:\Users\bdgibby\Git\game-census
+
+Scope: formal PRD/PRS authoring and reconciliation of existing planning artifacts.
+No product implementation, authenticated source requests, scheduled collection,
+publication, commits, remote creation, or deployment was performed.
+
+Changed-file purposes:
+- docs/PRD-game-census.md: new canonical nine-section product intent, actors,
+  capabilities, phases, success targets, risks, and boundaries.
+- docs/PRS-game-census.md: new canonical ten-section technical contracts and
+  source/metric/configuration/security/recovery specification.
+- docs/BACKLOG.md: explicit disposition of five unresolved decision groups.
+- docs/build-tasks/initial-release/PRD.md: old mixed document migrated to a
+  navigation pointer, preserving one canonical owner per subject.
+- README.md: entry points and document ownership updated for the pair.
+- implementation_plan.md, task_checklist.md, agent_prompt.md: canonical links
+  and references updated. Product implementation remains unstarted.
+- tools/export_plan.py: validation now targets the canonical pair; exports
+  standalone linked documents as well as combined Markdown and repository ZIP.
+- This evidence file: records the current authoring checks.
+
+Before existing-file edits, all six affected prior files were copied to backup,
+restored into a distinct scratch directory, and compared with SHA256. Original
+planning exports remain unchanged. The prior source-probes.json is still the
+dated source evidence; its data was not refetched for this authoring pass.
+
+Independent review retained the original public-beta prerequisites. Those include
+FR-07 through FR-10, NFR-01 through NFR-04, distribution resolution, and full-size
+recovery evidence. PRD section 6 owns targets. PRS owns the metric definitions.
+Actor terminology was reconciled to Visitor, Analyst, Operator, and Maintainer.
+
+No ADR or owner ratification was fabricated. All implementation remains proposed.
+No product tests ran. Style-lint categories were inspected as advisory guidance.
+
+Commands and unedited validation output follow.
+
+Command: python tools/export_plan.py --check
+PASS: PRD/PRS have 9/10 ordered sections; 14 requirement IDs covered in PRS, plan and checklist
+PASS: local file links resolve; legacy PRD is a pointer; canonical ownership is explicit
+PASS: 32 product tasks remain unstarted; no implementation walkthrough
+PASS: illustrative player budget = 72000 calls/day; annual observations = 26280000
+Exit code: 0
+
+Command: python C:\Users\bdgibby\.codex\skills\prepare-and-run-build-task\scripts\validate_build_packet.py docs --prd PRD-game-census.md --plan build-tasks/initial-release/implementation_plan.md --checklist build-tasks/initial-release/task_checklist.md --brief build-tasks/initial-release/agent_prompt.md --strict
+SUMMARY: 0 error(s), 0 warning(s)
+PASS: build packet satisfies the selected validation policy
+Exit code: 0
+
+Command: git status --short --branch
+## No commits yet on main
+?? .gitignore
+?? README.md
+?? docs/
+?? tools/
+Exit code: 0
+Local repository remains uncommitted with no remote.

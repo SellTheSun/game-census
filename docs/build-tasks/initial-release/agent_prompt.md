@@ -1,0 +1,42 @@
+# Game Census: execution brief
+
+## Mission and authorization boundary
+
+The active goal is **Build the first usable version**. Implement and verify the P0–P1 local slice: generated setup, one real game's current-player count, durable captures, bounded recorded history, CLI, read API and website. Name-only optional Store metadata provides game identity. Manual collection remains bounded; no scheduler is enabled. The full P2–P5 roadmap, external accounts/keys, contact, commits/pushes, public hosting and distribution are outside this build's completion claim.
+
+Build a self-hostable service for observed Steam concurrency and public game statistics using deterministic component interfaces. Start with one real game and one collection cycle, then durable history and UI. The end product uses separate CLI collector/server/metric/recovery commands over a shared Python package and PostgreSQL. No language model connects components.
+
+## References and canonical inputs
+
+Read the [PRD](../../PRD-game-census.md) for product intent, capabilities, success targets and scope. Read the [PRS](../../PRS-game-census.md) for source classifications, metric definitions, interfaces and configuration policy. Read [implementation_plan.md](implementation_plan.md) for exact planned file inventory, proposed commands, integrations, tests and effort. Maintain [task_checklist.md](task_checklist.md) as the implementation status owner. [BACKLOG.md](../../BACKLOG.md) owns deferred decisions. [Source-probes.json](evidence/source-probes.json) is a dated three-request planning observation, not a performance or availability guarantee. [Planning evidence](evidence/planning-evidence.txt) records checks actually run for the original packet.
+
+The first usable application source, pinned dependencies, migrations and tests are implemented and locally verified. The checklist owns status; the completion walkthrough owns observed build evidence. The source remote is [briandgibby/game-census](https://github.com/briandgibby/game-census). Consult Git for the current commit/synchronization state. No active schedules exist. Inspect current files before relying on a proposed future command.
+
+## Required workflow and constraints
+
+1. Execute only the user's authorized scope. Before each step mark its checklist item `[/]`; at most one active item per executing agent. Close it only when actual command/output evidence supports completion. Save failed evidence as well as the passing rerun.
+2. Build from empty state. Initialization, configuration generation, local secrets, schema/partitions and initial cohort must come from shipped commands. No manually placed file, database insert, or source-only hidden value. External facts such as API keys arrive only through configuration and missing facts are named by the program.
+3. All operator values are validated configuration; code owns bounds and accepts no unsafe file/URL input. Keep source registries, schemas, metric definitions and field names canonical. Derived docs/exports/projections must have a reproducible generator.
+4. Use the documented public Steam host. Start keyless with concurrency only. Enabling catalog/schema requires an operator-provided eligible Web API key. All production requests share durable quota/host accounting; no key/IP/account rotation or page-triggered bypass.
+5. Preserve source observations as canonical acquired history. They cannot be fetched again after the moment passes. Use explicit source versions, UTC receipt times, cohort/cadence history and query filters. Successful zero, missing, unsupported, stale and error are distinct.
+6. Follow PRS definitions exactly: observed peaks since tracking began, coverage-aware weighted averages, average-CCU growth, query-qualified review counts and country/currency-qualified prices. Do not promise all-time Steam records, full-catalog freshness, DAU/MAU, owners, sales or revenue.
+7. State targets and maximum work before side effects. Use dry-runs, then a watched bounded manual run before a schedule or expanded scope. The effective collection-plan hash excludes enable/disable state and includes collection scope/policy. A test or an agent's acknowledgment is not a person's watched-run attestation.
+8. Record every failure with redacted context and next action; stop required failed components. Explicit partial run results are nonzero and cannot masquerade as whole success. If persistence is unavailable, report on stderr instead of silently dropping diagnostics.
+9. For every bug fix, first produce a failing reproduction. If it cannot be reproduced, instrument it instead of speculating. Change and name one diagnostic variable per run. After the actual fix, repeat the same command and retain both outputs.
+10. Before removing any code/check/column/setting, explain its purpose; prove dead code with an actual reference/caller/data check if using that exception. Before overwrite/drop/delete, test restore into scratch and confirm contents. Derived-data regeneration is a restore path only after the regeneration command has actually succeeded.
+11. Pin exact runtimes, transitive packages, installer/build tools, container digests, actions and frontend assets. No `latest` or ambient upgrades. Same inputs must reproduce the canonical artifact. Record deliberate upgrades separately.
+12. Each component exposes CLI/HTTP/GUI and inspectable typed data. Use one name for each entity and refer to external-to-internal mappings from the repository README. Explain every modified file and why it changed before accepting the change.
+
+## Phase instructions
+
+Implement A and the source subset of B first for a real CLI result. Finish B's persistent web slice before expanding functionality. Implement C for trustworthy history and scheduling; then D's catalog and E's read product for alpha. Add D/E enrichments one at a time after their source probes and fixtures. Finish H for recovery, measured capacity, pinned release, docs and evidence. Keep P6 as research unless separately authorized.
+
+Parallel work may cover independent UI/adapters after shared contracts stabilize; one owner coordinates migrations, registry/config and integrated commands. Do not substitute a mocked end-to-end demo for the required real-source slice. Deterministic mocks belong in automated testing and must remain visibly separate from real observations.
+
+## Verification commands and deliverables
+
+All commands run from the repository root. **Currently available planning command:** `python tools/probe_sources.py` (three public GETs, no retries; avoid repeating without a source-recheck need). **Planning artifact command:** `python tools/export_plan.py --output-dir outputs` (creates deterministic derived files). Use the checked-in evidence to see what was actually run.
+
+The README and implementation plan identify shipped first-slice commands; the walkthrough records their outputs. The next authorized phase starts from this running slice. Future scheduler, catalog, enrichment, full backup/restore and performance commands remain acceptance contracts. Verify actual help and tests before claiming a command exists.
+
+Before calling the first usable version complete, map its FR-01/FR-02 acceptance and the implemented portions of FR-03/FR-06/FR-10/NFR-01/NFR-02/NFR-04 to observed evidence. Preserve the uncompleted full-product criteria. Create `walkthrough.md` beside this brief with exact commands, unedited output, changed-file purposes, limitations and reproduction instructions. Unexecuted checks remain explicitly unexecuted. Public release and external actions require their own authorization.

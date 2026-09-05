@@ -1,0 +1,75 @@
+.............................................................FFF         [100%]
+================================== FAILURES ===================================
+________ test_wrapper_preserves_safe_captured_configuration_diagnostic ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024CC8E653D0>
+
+    def test_wrapper_preserves_safe_captured_configuration_diagnostic(monkeypatch):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        diagnostic = "Invalid configuration setting(s): web.port. Run config describe --schema for supported bounds."
+        monkeypatch.setattr(
+            driver.subprocess,
+            "run",
+            lambda command, **_kwargs: subprocess.CompletedProcess(
+                command, 1, stdout="", stderr=json.dumps({"status": "failed", "error": diagnostic})
+            ),
+        )
+        with pytest.raises(driver.DriverError, match=r"web\.port") as error:
+>           driver.run(["docker", "run", "test-image", "config", "describe"], capture=True, safe_error=True)
+E           TypeError: run() got an unexpected keyword argument 'safe_error'
+
+tests\test_config_cli.py:418: TypeError
+______ test_wrapper_never_echoes_arbitrary_captured_docker_output[False] ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024CC8F7A990>
+safe_error = False
+
+    @pytest.mark.parametrize("safe_error", [False, True])
+    def test_wrapper_never_echoes_arbitrary_captured_docker_output(monkeypatch, safe_error):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(
+            driver.subprocess,
+            "run",
+            lambda command, **_kwargs: subprocess.CompletedProcess(
+                command, 1, stdout=DATABASE_URL, stderr="Docker diagnostic may contain " + SECRET
+            ),
+        )
+        with pytest.raises(driver.DriverError) as error:
+>           driver.run(["docker", "run", "test-image", "config", "describe"], capture=True, safe_error=safe_error)
+E           TypeError: run() got an unexpected keyword argument 'safe_error'
+
+tests\test_config_cli.py:436: TypeError
+______ test_wrapper_never_echoes_arbitrary_captured_docker_output[True] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024CC8F73540>
+safe_error = True
+
+    @pytest.mark.parametrize("safe_error", [False, True])
+    def test_wrapper_never_echoes_arbitrary_captured_docker_output(monkeypatch, safe_error):
+        source = Path(__file__).resolve().parents[1] / "tools" / "dev.py"
+        spec = importlib.util.spec_from_file_location("game_census_dev_for_test", source)
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        monkeypatch.setattr(
+            driver.subprocess,
+            "run",
+            lambda command, **_kwargs: subprocess.CompletedProcess(
+                command, 1, stdout=DATABASE_URL, stderr="Docker diagnostic may contain " + SECRET
+            ),
+        )
+        with pytest.raises(driver.DriverError) as error:
+>           driver.run(["docker", "run", "test-image", "config", "describe"], capture=True, safe_error=safe_error)
+E           TypeError: run() got an unexpected keyword argument 'safe_error'
+
+tests\test_config_cli.py:436: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_config_cli.py::test_wrapper_preserves_safe_captured_configuration_diagnostic
+FAILED tests/test_config_cli.py::test_wrapper_never_echoes_arbitrary_captured_docker_output[False]
+FAILED tests/test_config_cli.py::test_wrapper_never_echoes_arbitrary_captured_docker_output[True]
+3 failed, 61 passed in 0.75s

@@ -1,0 +1,59 @@
+Game Census planning evidence
+Research date: 2026-09-04
+
+Scope: plan only. No product installation, test suite, authenticated API check,
+production load test, active collector schedule, deployment, commit, or remote.
+The product commands in implementation_plan.md are proposed acceptance contracts.
+
+Bounded public source check (run once from repository root):
+  python tools/probe_sources.py
+Unedited output is in source-probes.json. Exit code: 0.
+Three GETs only, no API key and no retries; retained aggregate fields only.
+
+Local Git initialization command:
+  git init --initial-branch=main C:\Users\bdgibby\Git\game-census
+Output:
+Initialized empty Git repository in C:/Users/bdgibby/Git/game-census/.git/
+
+Independent plan review corrected metadata-evidence scope, the public-host link,
+freshness denominators, catalog projection ownership, growth definitions, dispatch
+capacity versus quota ceiling, and effective collection-plan acknowledgment scope.
+Review is analytical; it is not application test evidence.
+
+Validation commands and unedited output follow.
+
+Command: python C:\Users\bdgibby\.codex\skills\prepare-and-run-build-task\scripts\validate_build_packet.py docs/build-tasks/initial-release --strict
+Working directory: C:\Users\bdgibby\Git\game-census
+SUMMARY: 0 error(s), 0 warning(s)
+PASS: build packet satisfies the selected validation policy
+Exit code: 0
+
+Command: python tools/export_plan.py --check
+PASS: 4 planning documents; 14 requirement IDs covered; local file links resolve
+PASS: 32 product tasks remain unstarted; no implementation walkthrough
+PASS: illustrative player budget = 72000 calls/day; annual observations = 26280000
+Exit code: 0
+
+Final review corrections: added an explicit pinned-container application wrapper; moved the catalog prerequisite migration to the start of P3; specified generated toolchain pin checks.
+
+Command: python C:\Users\bdgibby\.codex\skills\prepare-and-run-build-task\scripts\validate_build_packet.py docs/build-tasks/initial-release --strict
+Working directory: C:\Users\bdgibby\Git\game-census
+SUMMARY: 0 error(s), 0 warning(s)
+PASS: build packet satisfies the selected validation policy
+Exit code: 0
+
+Command: python tools/export_plan.py --check
+PASS: 4 planning documents; 14 requirement IDs covered; local file links resolve
+PASS: 32 product tasks remain unstarted; no implementation walkthrough
+PASS: illustrative player budget = 72000 calls/day; annual observations = 26280000
+Exit code: 0
+
+Command: git status --short --branch
+## No commits yet on main
+?? .gitignore
+?? README.md
+?? docs/
+?? tools/
+Exit code: 0
+
+Local-only state: no remote or commit was created. Product verification remains unexecuted.

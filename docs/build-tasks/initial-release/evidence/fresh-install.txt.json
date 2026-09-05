@@ -1,0 +1,17 @@
+{
+  "command": [
+    "python",
+    "tools/dev.py",
+    "--instance",
+    "first-usable-check",
+    "quickstart",
+    "--once",
+    "--app-id",
+    "570",
+    "--port",
+    "8001"
+  ],
+  "cwd": "C:/Users/bdgibby/Git/game-census",
+  "exit_code": 0,
+  "output": "fresh-install.txt"
+}

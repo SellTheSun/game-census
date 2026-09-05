@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "C:\Users\bdgibby\Git\game-census\tools\sync_toolchain.py", line 46, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bdgibby\Git\game-census\tools\sync_toolchain.py", line 22, in main
+    raise ValueError("Install the uv version named in build/toolchain.lock.json.")
+ValueError: Install the uv version named in build/toolchain.lock.json.

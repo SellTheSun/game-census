@@ -1,0 +1,46 @@
+{
+  "purpose": "Planning evidence, not a production collector or availability guarantee",
+  "requests_max": 3,
+  "results": [
+    {
+      "source": "current_players",
+      "url": "https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=570",
+      "observed_at": "2026-09-04T21:15:22.128633+00:00",
+      "http_status": 200,
+      "data": {
+        "player_count": 699658,
+        "result": 1
+      },
+      "status": "success"
+    },
+    {
+      "source": "store_details",
+      "url": "https://store.steampowered.com/api/appdetails?appids=570&cc=us&l=english&filters=basic,price_overview",
+      "observed_at": "2026-09-04T21:15:22.361251+00:00",
+      "http_status": 200,
+      "data": {
+        "steam_appid": 570,
+        "type": "game",
+        "name": "Dota 2",
+        "is_free": true,
+        "required_age": 0
+      },
+      "status": "success"
+    },
+    {
+      "source": "review_summary",
+      "url": "https://store.steampowered.com/appreviews/570?json=1&filter=all&language=all&day_range=30&cursor=*&review_type=all&purchase_type=steam&num_per_page=1&filter_offtopic_activity=1",
+      "observed_at": "2026-09-04T21:15:22.607327+00:00",
+      "http_status": 200,
+      "data": {
+        "num_reviews": 1,
+        "review_score": 8,
+        "review_score_desc": "Very Positive",
+        "total_positive": 12185,
+        "total_negative": 2193,
+        "total_reviews": 14378
+      },
+      "status": "success"
+    }
+  ]
+}

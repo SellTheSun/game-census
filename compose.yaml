@@ -1,0 +1,36 @@
+services:
+  db:
+    image: ${GC_POSTGRES_IMAGE:?Use tools/dev.py}
+    environment:
+      POSTGRES_USER: ${GC_DB_USER:?Use tools/dev.py}
+      POSTGRES_PASSWORD: ${GC_DB_PASSWORD:?Use tools/dev.py}
+      POSTGRES_DB: ${GC_DB_NAME:?Use tools/dev.py}
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: "no"
+  web:
+    image: ${GC_APP_IMAGE:?Use tools/dev.py}
+    command: ["serve"]
+    environment:
+      GAME_CENSUS_CONFIG: /config/local.json
+    volumes:
+      - ${GC_CONFIG_DIR:?Use tools/dev.py}:/config:ro
+      - ${GC_STATE_DIR:?Use tools/dev.py}:/state
+    ports:
+      - "127.0.0.1:${GC_WEB_PORT:?Use tools/dev.py}:${GC_WEB_PORT:?Use tools/dev.py}"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-m", "game_census", "doctor", "--http"]
+      interval: 5s
+      timeout: 10s
+      retries: 6
+    restart: "no"
+volumes:
+  postgres:

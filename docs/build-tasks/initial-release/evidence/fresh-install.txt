@@ -1,0 +1,137 @@
+{"operation": "quickstart", "instance": "game-census-first-usable-check", "touches": ["C:\\Users\\bdgibby\\Git\\game-census\\data\\instances\\first-usable-check", "game-census-first-usable-check_postgres", "local Docker images and containers"], "app_ids": [570], "collection": "one manual run", "scheduler": "disabled"}
+{"docker_engine": "linux", "compose_version": "5.3.0", "python_image": "python:3.14.6-slim-bookworm@sha256:4c92ffcde4dd6f1ff72a24518f49fd4990b27134987dfa31a733badde66df9f8", "postgres_image": "postgres:18.4-bookworm@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"}
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 515B done
+#1 WARN: InvalidDefaultArgInFrom: Default value for ARG ${PYTHON_IMAGE} results in empty or invalid base image name (line 2)
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.14.6-slim-bookworm@sha256:4c92ffcde4dd6f1ff72a24518f49fd4990b27134987dfa31a733badde66df9f8
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 204B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 2.15kB done
+#4 DONE 0.0s
+
+#5 [1/9] FROM docker.io/library/python:3.14.6-slim-bookworm@sha256:4c92ffcde4dd6f1ff72a24518f49fd4990b27134987dfa31a733badde66df9f8
+#5 resolve docker.io/library/python:3.14.6-slim-bookworm@sha256:4c92ffcde4dd6f1ff72a24518f49fd4990b27134987dfa31a733badde66df9f8 0.0s done
+#5 DONE 0.0s
+
+#6 [5/9] COPY src /app/src
+#6 CACHED
+
+#7 [6/9] COPY tests /app/tests
+#7 CACHED
+
+#8 [4/9] RUN python -m pip install --no-cache-dir --require-hashes --no-deps -r requirements.lock
+#8 CACHED
+
+#9 [2/9] WORKDIR /app
+#9 CACHED
+
+#10 [3/9] COPY requirements.lock /app/requirements.lock
+#10 CACHED
+
+#11 [8/9] COPY tools/dev.py /app/tools/dev.py
+#11 CACHED
+
+#12 [7/9] COPY pyproject.toml /app/pyproject.toml
+#12 CACHED
+
+#13 [9/9] COPY build/toolchain.lock.json /app/build/toolchain.lock.json
+#13 CACHED
+
+#14 exporting to image
+#14 exporting layers done
+#14 exporting manifest sha256:39a6891e46ec34725aeb55d74e4ae51779288e461f16b4778ada6f90622a730d done
+#14 exporting config sha256:847564657dedc9fbab731887a59b5639558d8bcf67f17312b1203c65be3e1a3f done
+#14 exporting attestation manifest sha256:0b0a0a4d3d06eecc56edc6b2d179ad0624917a2317659dab489c3949db033cc1 0.0s done
+#14 exporting manifest list sha256:662404c19491afdf3d74d5a8a542ba1213b8ad193e5573386705f0ea898deab8 done
+#14 naming to docker.io/library/game-census-first-usable-check:local done
+#14 unpacking to docker.io/library/game-census-first-usable-check:local done
+#14 DONE 0.0s
+
+ [33m1 warning found (use docker --debug to expand):
+[0m - InvalidDefaultArgInFrom: Default value for ARG ${PYTHON_IMAGE} results in empty or invalid base image name (line 2)
+{
+  "status": "created",
+  "config_path": "/config/local.json",
+  "app_ids": [
+    570
+  ]
+}
+ Network game-census-first-usable-check_default Creating 
+ Network game-census-first-usable-check_default Created 
+ Volume game-census-first-usable-check_postgres Creating 
+ Volume game-census-first-usable-check_postgres Created 
+ Container game-census-first-usable-check-db-1 Creating 
+ Container game-census-first-usable-check-db-1 Created 
+ Container game-census-first-usable-check-db-1 Starting 
+ Container game-census-first-usable-check-db-1 Started 
+ Container game-census-first-usable-check-db-1 Waiting 
+ Container game-census-first-usable-check-db-1 Healthy 
+ Container game-census-first-usable-check-web-run-1fb6c6580f15 Creating 
+ Container game-census-first-usable-check-web-run-1fb6c6580f15 Created 
+{
+  "schema_version": 2,
+  "tracked_apps": 1,
+  "captures": 0,
+  "enrolled_app_ids": [
+    570
+  ],
+  "scheduler": "disabled"
+}
+ Container game-census-first-usable-check-web-run-043e90cce0db Creating 
+ Container game-census-first-usable-check-web-run-043e90cce0db Created 
+{
+  "operation": "collect_once",
+  "app_ids": [
+    570
+  ],
+  "maximum_requests": 2,
+  "scheduler": "disabled"
+}
+{
+  "run_id": "06ba430e-77b9-49ef-bbde-e79c0079d530",
+  "status": "succeeded",
+  "apps": [
+    {
+      "app_id": 570,
+      "sources": [
+        {
+          "source": "steam_current_players_v1",
+          "status": "succeeded",
+          "capture_id": "cf85fc90-1b93-424a-9155-8db468ea80c5",
+          "observed_at": "2026-09-05T01:56:51.791675+00:00",
+          "value": 417478
+        },
+        {
+          "source": "steam_store_name_v1",
+          "status": "succeeded",
+          "capture_id": "76682d7b-2ed9-4071-bd6e-511b84c56c94",
+          "observed_at": "2026-09-05T01:56:52.064448+00:00",
+          "value": "Dota 2"
+        }
+      ],
+      "status": "succeeded"
+    }
+  ],
+  "request_count": 2
+}
+ Container game-census-first-usable-check-db-1 Running 
+ Container game-census-first-usable-check-web-1 Creating 
+ Container game-census-first-usable-check-web-1 Created 
+ Container game-census-first-usable-check-db-1 Waiting 
+ Container game-census-first-usable-check-db-1 Healthy 
+ Container game-census-first-usable-check-web-1 Starting 
+ Container game-census-first-usable-check-web-1 Started 
+ Container game-census-first-usable-check-db-1 Waiting 
+ Container game-census-first-usable-check-web-1 Waiting 
+ Container game-census-first-usable-check-db-1 Healthy 
+ Container game-census-first-usable-check-web-1 Healthy 
+{"status": "ready", "url": "http://127.0.0.1:8001", "configuration": "C:\\Users\\bdgibby\\Git\\game-census\\data\\instances\\first-usable-check\\config\\local.json", "next_collection": "python tools/dev.py --instance first-usable-check app collect --once", "scheduler": "disabled"}
