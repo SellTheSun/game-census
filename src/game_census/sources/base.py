@@ -21,14 +21,14 @@ class SourceError(Exception):
 class Capture:
     source: str
     source_version: str
-    app_id: int
+    app_id: int | None
     request_started_at: datetime
     received_at: datetime
     http_status: int
     parameters: dict
     payload: bytes
     capture_form: str
-    value: int | str
+    value: int | str | dict
 
     @property
     def checksum(self) -> str:

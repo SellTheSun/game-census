@@ -1,5 +1,6 @@
 """Deterministic, idempotent projection generation from versioned retained captures."""
 import hashlib
+from psycopg.types.json import Jsonb
 from .sources import REGISTRY, SourceError, players, store
 
 
@@ -21,3 +22,10 @@ def project(conn, capture: dict) -> None:
         conn.execute("""INSERT INTO app_name(capture_id,app_id,observed_at,name,parser_version)
             VALUES (%s,%s,%s,%s,%s) ON CONFLICT (capture_id) DO NOTHING""",
             (capture["capture_id"], capture["app_id"], capture["received_at"], value, adapter.VERSION))
+    else:
+        conn.execute("""INSERT INTO discovery_snapshot(capture_id,source,observed_at,parameters,value,parser_version)
+            VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING""",
+            (capture["capture_id"], capture["source"], capture["received_at"], Jsonb(capture["parameters"]), Jsonb(value), adapter.VERSION))
+        for item in value["items"]:
+            conn.execute("INSERT INTO catalog_entry(capture_id,app_id,name) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",
+                         (capture["capture_id"], item["app_id"], item["name"]))

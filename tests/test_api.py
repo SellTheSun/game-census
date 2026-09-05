@@ -39,6 +39,27 @@ class FakeDatabase:
             raise self.error
         return deepcopy(self.apps)
 
+    def dashboard(self):
+        self.calls.append("dashboard")
+        from game_census.sources.discovery import PLAYED, SALES, URLS
+        return {"catalog_apps": len(self.apps), "tracked_apps": len(self.apps),
+                "charts": {source: {"items": [], "observed_at": None, "age_seconds": None, "source_url": URLS[source]} for source in (PLAYED, SALES)},
+                "latest_attempts": {PLAYED: None, SALES: None}, "catalog_sync": {"complete": False},
+                "trending": {"items": [], "from": None, "to": None, "scope": "Apps in both snapshots"}}
+
+    def catalog(self, query="", page=1, page_size=25):
+        self.calls.append("catalog")
+        items = [dict(row, tracked=True) for row in self.apps if query.lower() in row["name"].lower() or query == str(row["app_id"])]
+        return {"items": items, "total": len(items), "page": page, "page_size": page_size}
+
+    def discovered_app(self, app_id):
+        return None
+
+    def game_details(self, app_id):
+        self.calls.append("game_details")
+        return {"snapshots": {}, "prices": [], "updates": [], "last_refresh": None,
+                "highest_recorded": None, "observed_24h_peak": None}
+
     def app_detail(self, app_id, settings):
         self.calls.append("app_detail")
         if self.error:
@@ -148,7 +169,7 @@ def test_reads_do_not_initialize_or_collect_and_status_is_allowlisted(fixture_ap
     status = client.get("/api/v1/status")
     assert "never-public" not in status.text
     assert "private" not in status.text
-    assert set(db.calls) <= {"list_apps", "app_detail", "history", "status", "last_run"}
+    assert set(db.calls) <= {"list_apps", "app_detail", "history", "status", "last_run", "catalog", "dashboard", "game_details"}
     assert client.post("/api/v1/apps", json={"app_id": 123}).status_code == 405
 
 
@@ -168,7 +189,7 @@ def test_retained_enrollment_is_not_mislabeled_current_configuration(fixture_app
     body = client.get("/api/v1/apps").json()
     assert {item["app_id"] for item in body["items"]} == {570, 730}
     assert body["tracking_scope"] == "enrolled"
-    assert "Your enrolled cohort" in client.get("/").text
+    assert "Your collection" in client.get("/").text
 
 
 def test_web_security_headers_and_local_assets(fixture_app):

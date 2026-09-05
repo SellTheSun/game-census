@@ -22,6 +22,16 @@ def parser():
     collect = commands.add_parser("collect", help="Run one bounded collection; scheduling is unavailable")
     collect.add_argument("--once", action="store_true", required=True)
     collect.add_argument("--app-id", type=int, action="append")
+    charts = commands.add_parser("charts", help="Collect Steam global charts").add_subparsers(dest="action", required=True)
+    charts.add_parser("collect").add_argument("--once", action="store_true", required=True)
+    catalog = commands.add_parser("catalog", help="Discover Steam games").add_subparsers(dest="action", required=True)
+    sync = catalog.add_parser("sync", help="Resume the keyed full game catalog scan")
+    sync.add_argument("--once", action="store_true", required=True)
+    sync.add_argument("--max-pages", type=int, default=5)
+    sync.add_argument("--restart", action="store_true", help="Start a new bounded scan from the first page, retaining prior discoveries")
+    search = catalog.add_parser("search", help="Import a bounded public Store search page")
+    search.add_argument("query")
+    search.add_argument("--page", type=int, default=1)
     report = commands.add_parser("report", help="Print recorded operations status")
     report.add_argument("--last-run", action="store_true")
     commands.add_parser("apps", help="Print the enrolled cohort with source timestamps")
@@ -62,6 +72,14 @@ def main(argv=None):
                   "maximum_requests": len(targets) * (2 if settings.sources.store_metadata_enabled else 1) * settings.http.max_attempts,
                   "scheduler": "disabled"})
             result = collect_once(settings, db, targets)
+            emit(result)
+            return 0 if result["status"] == "succeeded" else 1
+        elif args.command in ("charts", "catalog"):
+            from .collector import collect_discovery
+            operation = "charts" if args.command == "charts" else "catalog" if args.action == "sync" else "search"
+            result = collect_discovery(settings, db, operation, query=getattr(args, "query", ""),
+                                       page=getattr(args, "page", 1), max_pages=getattr(args, "max_pages", 5),
+                                       restart=getattr(args, "restart", False))
             emit(result)
             return 0 if result["status"] == "succeeded" else 1
         elif args.command == "report":

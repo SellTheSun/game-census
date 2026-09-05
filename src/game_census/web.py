@@ -1,17 +1,19 @@
-"""Stored-data-only HTTP interface and server-rendered exploration workspace."""
+"""Stored GET views with explicit, bounded same-origin Steam refresh actions."""
 
 from __future__ import annotations
 
 import logging
 import math
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Any
+from urllib.parse import urlencode, urlsplit
 
 from fastapi import FastAPI, HTTPException, Path as ApiPath, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -19,6 +21,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from .contracts import AppList, AppSummary, PlayerHistory, PublicStatus
 from .db import QueryLimitError
 from .sources.players import DOCUMENTATION_URL as SOURCE_URL, SOURCE as SOURCE_ID
+from .sources.details import STORE, REVIEWS, NEWS, CURRENT, MEDIA_HOSTS
 
 logger = logging.getLogger(__name__)
 PACKAGE = Path(__file__).parent
@@ -38,6 +41,20 @@ def _number(value: int | float | None) -> str:
 
 def _timestamp(value: datetime | str | None) -> str:
     return _utc(value).strftime("%d %b %Y, %H:%M:%S UTC") if value else "Not yet observed"
+
+
+def _news_excerpt(value: str) -> str:
+    """Display Steam announcement markup as text without altering captures."""
+    value = re.sub(r"\[img\].*?\[/img\]", "", value, flags=re.IGNORECASE | re.DOTALL)
+    value = re.sub(r"\{STEAM_CLAN_IMAGE\}[^\s\[]*", "", value)
+    value = re.sub(r"\[/?(?:url|b|i|u|h[1-6]|list|olist|quote|code|spoiler|img|previewyoutube|table|tr|td|th)(?:=[^\]]*)?\]|\[\*\]", "", value, flags=re.IGNORECASE)
+    return value.strip()
+
+
+def _details_due(details: dict) -> bool:
+    last_refresh = details.get("last_refresh")
+    at = last_refresh.get("finished_at") if last_refresh else None
+    return at is None or (datetime.now(timezone.utc) - _utc(at)).total_seconds() >= 900
 
 
 def _chart(history: dict, interval: int, gap_multiplier: float) -> dict:
@@ -72,7 +89,7 @@ def _chart(history: dict, interval: int, gap_multiplier: float) -> dict:
 
 
 def create_app(settings: Any, db: Any = None) -> FastAPI:
-    """Create a read process. Storage setup and Steam collection belong to the CLI."""
+    """Create stored views and bounded refresh routes; storage setup stays in the CLI."""
     if db is None:
         from .db import Database
 
@@ -84,6 +101,8 @@ def create_app(settings: Any, db: Any = None) -> FastAPI:
     templates = Jinja2Templates(directory=str(PACKAGE / "templates"))
     templates.env.filters["number"] = _number
     templates.env.filters["timestamp"] = _timestamp
+    templates.env.filters["news_excerpt"] = _news_excerpt
+    templates.env.filters["unixdate"] = lambda value: datetime.fromtimestamp(value, timezone.utc).strftime("%d %b %Y")
     maximum_hours = settings.web.max_history_days * 24
 
     def render(request: Request, name: str, context: dict | None = None, status_code: int = 200):
@@ -153,7 +172,7 @@ def create_app(settings: Any, db: Any = None) -> FastAPI:
             response = (JSONResponse(status_code=503, content={"error": problem})
                         if request.url.path.startswith(("/api/", "/health/", "/openapi.json"))
                         else render(request, "error.html", {"status_code": 503, "problem": problem}, 503))
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: " + " ".join("https://" + host for host in sorted(MEDIA_HOSTS)) + "; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Cache-Control"] = "no-store" if not request.url.path.startswith("/static/") else "public, max-age=3600"
@@ -202,16 +221,112 @@ def create_app(settings: Any, db: Any = None) -> FastAPI:
         return status_data()
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-    def home(request: Request, q: Annotated[str, Query(max_length=100)] = "", hours: int = Query(default=24, ge=1, le=maximum_hours)):
+    def home(request: Request, q: Annotated[str, Query(max_length=100)] = "", page: int = Query(default=1, ge=1, le=4294967295)):
+        if q or page != 1:
+            return RedirectResponse("/search?" + urlencode({"q": q, "page": page}), status_code=303)
         apps = listing()
-        filtered = listing(q) if q.strip() else apps
-        page = page_data(apps[0], hours) if apps else {}
-        return render(request, "index.html", {"apps": filtered, "cohort_count": len(apps), "q": q,
-                      "fresh_count": sum(item["availability"] == "fresh" for item in apps), **page})
+        return render(request, "index.html", {"apps": apps, "cohort_count": len(apps), "q": q,
+                      "fresh_count": sum(item["availability"] == "fresh" for item in apps),
+                      "dashboard": read("dashboard")})
+
+    @app.get("/search", response_class=HTMLResponse, include_in_schema=False)
+    def search_page(request: Request, q: Annotated[str, Query(max_length=100)] = "", page: int = Query(default=1, ge=1, le=4294967295)):
+        q = q.strip()
+        return render(request, "search.html", {"nav": "search", "q": q,
+                      "catalog": read("catalog", q, page, 24) if q else None,
+                      "previous_url": "/search?" + urlencode({"q": q, "page": max(1, page-1)}),
+                      "next_url": "/search?" + urlencode({"q": q, "page": page+1}),
+                      "search_action": "/discovery/search?" + urlencode({"q": q, "return_page": page})})
+
+    @app.get("/api/v1/catalog", tags=["Discovery"])
+    def api_catalog(q: Annotated[str, Query(max_length=100)] = "", page: int = Query(default=1, ge=1, le=4294967295),
+                    page_size: int = Query(default=25, ge=1, le=100)):
+        return read("catalog", q, page, page_size)
+
+    @app.get("/api/v1/dashboard", tags=["Discovery"])
+    def api_dashboard():
+        return read("dashboard")
+
+    def same_origin(request):
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        expected = urlsplit(str(request.base_url))
+        supplied = urlsplit(origin or referer or "")
+        if (supplied.scheme, supplied.netloc) != (expected.scheme, expected.netloc) or request.headers.get("sec-fetch-site") == "cross-site":
+            raise HTTPException(403, "Steam collection requires a same-origin form submission.")
+
+    def discovery_mutation(request, operation, redirect_url="/", **kwargs):
+        from .collector import collect_discovery
+        from .db import DatabaseError
+        from .sources import SourceError
+        same_origin(request)
+        try:
+            report = collect_discovery(settings, db, operation, **kwargs)
+        except (DatabaseError, SourceError) as error:
+            raise HTTPException(503, str(error)) from None
+        if report["status"] != "succeeded":
+            errors = [item["error"]["message"] for item in report["sources"] if item["status"] == "failed"]
+            raise HTTPException(503, " ".join(errors) + " Last successful snapshots remain available on the dashboard.")
+        return RedirectResponse(redirect_url, status_code=303)
+
+    @app.post("/discovery/search", include_in_schema=False)
+    def search_steam(request: Request, q: Annotated[str, Query(min_length=1, max_length=100)],
+                     page: int = Query(default=1, ge=1, le=100),
+                     return_page: int | None = Query(default=None, ge=1, le=4294967295)):
+        return discovery_mutation(request, "search", redirect_url="/search?" + urlencode({"q": q, "page": return_page or page}), query=q, page=page)
+
+    @app.post("/discovery/charts", include_in_schema=False)
+    def refresh_charts(request: Request):
+        return discovery_mutation(request, "charts")
 
     @app.get("/apps/{app_id}", response_class=HTMLResponse, include_in_schema=False)
-    def game_page(request: Request, app_id: APP_ID, hours: int = Query(default=24, ge=1, le=maximum_hours)):
-        return render(request, "game.html", page_data(detail(app_id), hours))
+    def game_page(request: Request, app_id: APP_ID, hours: int = Query(default=24, ge=1, le=maximum_hours), refreshed: str = ""):
+        tracked = read("app_detail", app_id, settings)
+        discovered = read("discovered_app", app_id)
+        if tracked is None and discovered is None:
+            raise HTTPException(404, "This Steam app is not yet known here. Search Steam from the dashboard.")
+        details = read("game_details", app_id)
+        snapshots = details["snapshots"]
+        metadata = snapshots.get(STORE)
+        context = {"tracked": bool(tracked), "details": details, "metadata": metadata,
+                   "reviews": snapshots.get(REVIEWS), "news": snapshots.get(NEWS),
+                   "current": snapshots.get(CURRENT), "charts": discovered.get("charts", []) if discovered else [],
+                   "refresh_result": refreshed if refreshed in ("succeeded", "partial", "failed") else ""}
+        context["auto_refresh"] = not context["refresh_result"] and _details_due(details)
+        if tracked:
+            context.update(page_data(AppSummary.model_validate(tracked).model_dump(), hours))
+            if context["current"] and tracked.get("observed_at") and _utc(tracked["observed_at"]) > _utc(context["current"]["observed_at"]):
+                context["current"] = None
+        else:
+            context["game"] = discovered
+        if metadata:
+            context["game"]["name"] = metadata["name"]
+        for field, key in (("profile_peak", "observed_24h_peak"), ("profile_highest", "highest_recorded")):
+            values = [value for value in (details[key], tracked.get(key) if tracked else None) if value is not None]
+            context[field] = max(values) if values else None
+        return render(request, "game.html", context)
+
+    @app.post("/apps/{app_id}/refresh", include_in_schema=False)
+    def refresh_details(request: Request, app_id: APP_ID, automatic: bool = False):
+        from .collector import collect_discovery
+        from .db import DatabaseError
+        from .sources import SourceError
+        same_origin(request)
+        if read("app_detail", app_id, settings) is None and read("discovered_app", app_id) is None:
+            raise HTTPException(404, "This Steam app is not yet known here.")
+        if automatic and not _details_due(read("game_details", app_id)):
+            return RedirectResponse(f"/apps/{app_id}", status_code=303)
+        try:
+            report = collect_discovery(settings, db, "details", app_id=app_id)
+        except (DatabaseError, SourceError) as error:
+            raise HTTPException(503, str(error)) from None
+        return RedirectResponse(f"/apps/{app_id}?refreshed={report['status']}", status_code=303)
+
+    @app.get("/api/v1/apps/{app_id}/details", tags=["Discovery"])
+    def api_game_details(app_id: APP_ID):
+        if read("app_detail", app_id, settings) is None and read("discovered_app", app_id) is None:
+            raise HTTPException(404, "This Steam app is not yet known here.")
+        return read("game_details", app_id)
 
     @app.get("/methodology", response_class=HTMLResponse, include_in_schema=False)
     def methodology(request: Request):
@@ -221,6 +336,6 @@ def create_app(settings: Any, db: Any = None) -> FastAPI:
 
     @app.get("/status", response_class=HTMLResponse, include_in_schema=False)
     def status_page(request: Request):
-        return render(request, "status.html", {"nav": "status", "status": status_data(), "apps": listing()})
+        return render(request, "status.html", {"nav": "status", "status": status_data(), "apps": listing(), "dashboard": read("dashboard")})
 
     return app
