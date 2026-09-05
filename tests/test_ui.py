@@ -74,3 +74,38 @@ def test_fresh_snapshot_labels_do_not_claim_continuing_freshness(fixture_app):
     assert "Fresh at page read" in detail
     assert "Fresh at page read" in status
     assert "Fresh observation" not in home + detail + status
+
+
+def test_home_prioritizes_charts_and_search_is_separate(fixture_app):
+    client, db, _ = fixture_app
+    html = client.get("/").text
+    assert "catalog" not in db.calls
+    assert "Search the catalog" not in html
+    assert 'class="catalog-grid"' not in html
+    assert html.index("Most played") < html.index("Trending by player growth") < html.index("Tracked games")
+    for path in ("/", "/search", "/apps/570", "/status", "/methodology"):
+        html = client.get(path).text
+        assert 'action="/search" method="get" role="search"' in html
+        assert 'for="catalog-search">Search Steam game name or app ID</label>' in html
+
+
+def test_search_empty_matches_and_no_results(fixture_app):
+    client, db, _ = fixture_app
+    assert "Enter a game name or Steam app ID" in client.get("/search").text
+    assert "catalog" not in db.calls
+    html = client.get("/search?q=570").text
+    assert 'href="/apps/570"' in html
+    assert "1 matching game" in html
+    assert "No matching games" in client.get("/search?q=not-present").text
+    assert 'action="/discovery/search?q=570&amp;return_page=1" method="post"' in html
+
+
+def test_search_links_preserve_query_and_page(fixture_app):
+    client, db, _ = fixture_app
+    db.catalog = lambda *args: {"items": [], "total": 80, "page": 2, "page_size": 24}
+    html = client.get("/search?q=Half+Life&page=2").text
+    assert '/search?q=Half+Life&amp;page=1' in html
+    assert '/search?q=Half+Life&amp;page=3' in html
+    assert '/discovery/search?q=Half+Life&amp;return_page=2' in html
+    legacy = client.get("/?q=Half+Life&page=2", follow_redirects=False)
+    assert legacy.headers["location"] == "/search?q=Half+Life&page=2"

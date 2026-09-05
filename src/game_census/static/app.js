@@ -71,3 +71,48 @@ if (notice) {
   checkStoredState();
   window.setInterval(checkStoredState, Number(document.body.dataset.refreshSeconds) * 1000);
 }
+
+document.querySelectorAll('[data-game-image]').forEach((image) => {
+  const failed = () => image.classList.add('image-unavailable');
+  image.addEventListener('error', failed);
+  if (image.complete && !image.naturalWidth) failed();
+});
+document.querySelectorAll('[data-collect-form]').forEach((form) => {
+  form.addEventListener('submit', () => {
+    const button = form.querySelector('button');
+    button.disabled = true;
+    button.textContent = 'Fetching Steam data…';
+  });
+});
+document.querySelectorAll('a[href="#screenshots"]').forEach((link) => {
+  link.addEventListener('click', () => {
+    const section = document.getElementById('screenshots');
+    if (section) section.open = true;
+  });
+});
+
+const automaticProfile = document.querySelector('[data-auto-details]');
+if (automaticProfile) {
+  const status = document.querySelector('[data-details-loading]');
+  const button = automaticProfile.querySelector('[data-collect-form] button');
+  button.disabled = true;
+  button.textContent = 'Loading Steam data…';
+  fetch(automaticProfile.dataset.autoDetails, {method: 'POST', credentials: 'same-origin'})
+    .then((response) => {
+      if (!response.ok) throw new Error('Details refresh failed');
+      window.location.replace(response.url);
+    })
+    .catch(() => {
+      status.textContent = 'Steam details could not finish loading. Use Refresh details to retry.';
+      button.disabled = false;
+      button.textContent = 'Refresh details ↻';
+    });
+}
+const completedProfile = document.querySelector('.game-profile');
+if (completedProfile) {
+  const currentUrl = new URL(window.location.href);
+  if (currentUrl.searchParams.has('refreshed')) {
+    currentUrl.searchParams.delete('refreshed');
+    window.history.replaceState(null, '', currentUrl.pathname + currentUrl.search + currentUrl.hash);
+  }
+}

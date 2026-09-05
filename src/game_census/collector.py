@@ -62,4 +62,75 @@ def collect_once(settings, db, app_ids=None, transport=None) -> dict:
             raise DatabaseError("Collection stopped before completion. Inspect the last-run report and database status; reserved requests remain charged.") from None
         report["status"] = "partial" if successes and failures else ("failed" if failures else "succeeded")
         db.finish_run(report)
+    return report
+
+
+def collect_discovery(settings, db, operation, *, query="", page=1, max_pages=5, restart=False, app_id=None, transport=None):
+    """Explicit bounded global collection using the same durable admission ledger."""
+    from .sources.discovery import ADAPTERS, PLAYED, SALES, SEARCH, CATALOG
+    from .sources.details import ADAPTERS as DETAIL_ADAPTERS
+    adapters = {**ADAPTERS, **DETAIL_ADAPTERS}
+    if operation not in ("charts", "search", "catalog", "details"):
+        raise DatabaseError("Unknown discovery operation.")
+    if operation == "details":
+        validate_app_id(app_id)
+    query = query.strip()
+    if operation == "search" and (not 1 <= len(query) <= 100 or not 1 <= page <= 100):
+        raise DatabaseError("Steam search requires a 1–100 character query and a page from 1 to 100.")
+    if not 1 <= max_pages <= 20:
+        raise DatabaseError("Catalog sync requires 1–20 pages per run.")
+    if operation == "catalog" and not settings.sources.catalog_api_key:
+        raise SourceError("catalog_key_required", "Full catalog sync requires sources.catalog_api_key.",
+                          "Configure a Steam Web API key or use public Steam search.")
+    sources = list(DETAIL_ADAPTERS) if operation == "details" else [PLAYED, SALES] if operation == "charts" else [SEARCH if operation == "search" else CATALOG]
+    with db.collection_lock():
+        db.initialize([], settings.tracking.interval_seconds)
+        run_id = db.start_run([], sources)
+        report = {"run_id": run_id, "status": "failed", "sources": [], "request_count": 0}
+        if operation == "details":
+            report["requested_app_id"] = app_id
+        try:
+            with httpx.Client(timeout=settings.http.timeout_seconds, transport=transport,
+                              headers={"User-Agent": f"Game-Census/{__version__}"}) as client:
+                for source in sources:
+                    adapter = adapters[source]
+                    for page_index in range(max_pages if source == CATALOG else 1):
+                        parameters = {"cc": "US", "l": "english"}
+                        if source == SEARCH:
+                            parameters.update(term=query, page=page, category1=998, count=50)
+                        elif source == CATALOG:
+                            state = db.catalog_sync_state()
+                            if restart and page_index == 0:
+                                state = {"last_appid": 0, "complete": False}
+                            if state["complete"]:
+                                report["catalog_complete"] = True
+                                break
+                            parameters = {"last_appid": state["last_appid"], "max_results": 1000,
+                                          "include_games": True, "include_dlc": False, "include_software": False,
+                                          "include_videos": False, "include_hardware": False}
+                        attempt = None
+                        try:
+                            group = adapter.HOST_GROUP
+                            attempt = db.reserve_attempt(run_id, None, source, group, getattr(settings.quota, f"{group}_rolling_24h"),
+                                                         max(settings.http.min_interval_seconds, 2 if group == "store" else 1))
+                            report["request_count"] += 1
+                            capture = (adapter.fetch(client, app_id, settings.http.max_response_bytes) if operation == "details" else
+                                       adapter.fetch(client, parameters, settings.http.max_response_bytes, settings.sources.catalog_api_key))
+                            capture_id = db.record_capture(run_id, attempt, capture)
+                            report["sources"].append({"source": source, "status": "succeeded", "capture_id": capture_id,
+                                                      "items": len(capture.value["items"]), "observed_at": capture.received_at.isoformat()})
+                        except SourceError as error:
+                            if attempt:
+                                db.record_failure(attempt, error)
+                            report["sources"].append({"source": source, "status": "failed", "error": error.as_dict()})
+                            break
+            successes = sum(row["status"] == "succeeded" for row in report["sources"])
+            failures = sum(row["status"] == "failed" for row in report["sources"])
+            report["status"] = "partial" if successes and failures else "failed" if failures else "succeeded"
+        except Exception:
+            report["status"] = "partial" if any(row["status"] == "succeeded" for row in report["sources"]) else "failed"
+            report["error"] = {"code": "collection_interrupted", "message": "Discovery collection stopped; reserved requests remain charged."}
+            db.finish_run(report)
+            raise DatabaseError("Discovery collection stopped. Inspect database status and the last run before retrying.") from None
+        db.finish_run(report)
         return report

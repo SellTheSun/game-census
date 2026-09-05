@@ -25,14 +25,14 @@ def retry_after(value: str | None) -> float | None:
             return None
 
 
-def request(client: httpx.Client, url: str, params: dict, max_bytes: int) -> tuple[bytes, datetime, datetime, int]:
+def request(client: httpx.Client, url: str, params: dict, max_bytes: int, *, headers: dict | None = None) -> tuple[bytes, datetime, datetime, int]:
     parsed = httpx.URL(url)
     if parsed.scheme != "https" or parsed.host not in ALLOWED_HOSTS or parsed.port not in (None, 443) or parsed.userinfo:
         raise SourceError("source_not_allowed", "The source URL is outside the approved Steam hosts.",
                           "Use the shipped Steam source adapters.")
     started = datetime.now(timezone.utc)
     try:
-        with client.stream("GET", url, params=params, follow_redirects=False) as response:
+        with client.stream("GET", url, params=params, headers=headers, follow_redirects=False) as response:
             if response.status_code != 200:
                 raise SourceError("http_error", f"Steam returned HTTP {response.status_code}.",
                                   "Retry a bounded collection after Steam access recovers.",

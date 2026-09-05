@@ -66,6 +66,7 @@ class Http(Model):
 
 class Sources(Model):
     store_metadata_enabled: bool = True
+    catalog_api_key: SecretStr | None = None
 
 
 class Quota(Model):

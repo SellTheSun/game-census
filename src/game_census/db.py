@@ -103,7 +103,7 @@ class Database:
         capture_id = str(uuid.uuid4())
         row = {"capture_id": capture_id, "app_id": capture.app_id, "source": capture.source,
                "source_version": capture.source_version, "received_at": capture.received_at,
-               "payload": capture.payload, "checksum": capture.checksum}
+               "payload": capture.payload, "checksum": capture.checksum, "parameters": capture.parameters}
         with self.connection() as conn:
             conn.execute("""INSERT INTO capture(capture_id,attempt_id,run_id,app_id,source,source_version,
                 request_started_at,received_at,http_status,parameters,payload,checksum,capture_form)
@@ -187,6 +187,128 @@ class Database:
     def app_detail(self, app_id: int, settings) -> dict | None:
         return next((row for row in self.list_apps(settings) if row["app_id"] == app_id), None)
 
+    def catalog_sync_state(self):
+        from .sources.discovery import CATALOG
+        with self.connection() as conn:
+            row = conn.execute("SELECT value,observed_at FROM discovery_snapshot WHERE source=%s ORDER BY observed_at DESC,capture_id DESC LIMIT 1", (CATALOG,)).fetchone()
+        return {"last_appid": row["value"]["last_appid"] if row else 0,
+                "complete": not row["value"]["have_more_results"] if row else False,
+                "observed_at": iso(row["observed_at"]) if row else None}
+
+    def catalog(self, query="", page=1, page_size=25):
+        # Even one app per page can cover every supported uint32 Steam app ID.
+        # The maximum offset with 100 rows per page remains within SQL bigint.
+        if not 1 <= page <= 4294967295 or not 1 <= page_size <= 100 or len(query) > 100:
+            raise QueryLimitError("Catalog search exceeds its page or query bounds.")
+        # Filter after selecting each app's latest known name, including enrolled apps.
+        cte = """WITH names AS (
+            SELECT e.app_id,e.name,s.observed_at,s.source FROM catalog_entry e JOIN discovery_snapshot s USING(capture_id)
+            UNION ALL SELECT app_id,name,observed_at,'steam_store_metadata' FROM app_name
+            UNION ALL SELECT app_id,'Steam app '||app_id,created_at,'enrollment' FROM app
+            ), latest AS (SELECT DISTINCT ON(app_id) * FROM names ORDER BY app_id,observed_at DESC,source),
+            matching AS (SELECT *,EXISTS(SELECT 1 FROM tracking_interval t WHERE t.app_id=latest.app_id) AS tracked
+              FROM latest WHERE name ILIKE %s ESCAPE '\\' OR app_id::text=%s) """
+        escaped = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        params = (f"%{escaped}%", query.strip())
+        with self.connection() as conn:
+            total = conn.execute(cte + "SELECT count(*) AS n FROM matching", params).fetchone()["n"]
+            rows = conn.execute(cte + "SELECT * FROM matching ORDER BY lower(name),app_id LIMIT %s OFFSET %s",
+                                (*params, page_size, (page-1)*page_size)).fetchall()
+        for row in rows:
+            row["observed_at"] = iso(row["observed_at"])
+        return {"items": rows, "total": total, "page": page, "page_size": page_size,
+                "query": query, "scope": "locally discovered Steam apps", "sync": self.catalog_sync_state()}
+
+    def discovered_app(self, app_id):
+        with self.connection() as conn:
+            row = conn.execute("""SELECT e.app_id,e.name,s.observed_at,s.source FROM catalog_entry e
+                JOIN discovery_snapshot s USING(capture_id) WHERE e.app_id=%s
+                ORDER BY s.observed_at DESC,s.capture_id DESC LIMIT 1""", (app_id,)).fetchone()
+        if row:
+            row["observed_at"] = iso(row["observed_at"])
+            row["charts"] = [{"source": source, "observed_at": chart["observed_at"], **item}
+                             for source, chart in self.dashboard()["charts"].items()
+                             for item in chart["items"] if item["app_id"] == app_id]
+        return row
+
+    def game_details(self, app_id):
+        """Bounded per-source snapshots and local price history; no Steam reads."""
+        from .sources.details import ADAPTERS, STORE, CURRENT
+        snapshots, updates = {}, []
+        with self.connection() as conn:
+            for source in ADAPTERS:
+                row = conn.execute("""SELECT capture_id,source,observed_at,value FROM discovery_snapshot
+                    WHERE source=%s AND parameters->>'requested_app_id'=%s
+                    ORDER BY observed_at DESC,capture_id DESC LIMIT 1""", (source, str(app_id))).fetchone()
+                if row:
+                    snapshots[source] = {**row["value"], "capture_id": str(row["capture_id"]), "observed_at": iso(row["observed_at"])}
+            rows = conn.execute("""SELECT capture_id,observed_at,value->'price' AS price,value->'is_free' AS is_free
+                FROM discovery_snapshot WHERE source=%s AND parameters->>'requested_app_id'=%s
+                ORDER BY observed_at DESC,capture_id DESC LIMIT 100""", (STORE, str(app_id))).fetchall()
+            prices = [{"capture_id": str(row["capture_id"]), "observed_at": iso(row["observed_at"]), "price": row["price"], "is_free": row["is_free"]} for row in rows]
+            rows = conn.execute("""SELECT capture_id,source,observed_at FROM discovery_snapshot
+                WHERE source=ANY(%s) AND parameters->>'requested_app_id'=%s
+                ORDER BY observed_at DESC,capture_id DESC LIMIT 20""", (list(ADAPTERS), str(app_id))).fetchall()
+            updates = [{"capture_id": str(row["capture_id"]), "source": row["source"], "observed_at": iso(row["observed_at"])} for row in rows]
+            current = conn.execute("""SELECT max((value->>'player_count')::bigint) AS highest,
+                max((value->>'player_count')::bigint) FILTER (WHERE observed_at >= now()-interval '24 hours') AS peak
+                FROM discovery_snapshot WHERE source=%s AND parameters->>'requested_app_id'=%s""", (CURRENT, str(app_id))).fetchone()
+            latest_run = conn.execute("""SELECT report,finished_at FROM run_completion WHERE report->>'requested_app_id'=%s
+                ORDER BY finished_at DESC LIMIT 1""", (str(app_id),)).fetchone()
+        return {"snapshots": snapshots, "prices": prices, "updates": updates,
+                "last_refresh": {**latest_run["report"], "finished_at": iso(latest_run["finished_at"])} if latest_run else None,
+                "highest_recorded": current["highest"], "observed_24h_peak": current["peak"]}
+
+    def dashboard(self):
+        from .sources.discovery import PLAYED, SALES, SEARCH, CATALOG, URLS
+        charts, attempts, played_snapshots = {}, {}, []
+        with self.connection() as conn:
+            counts = conn.execute("""SELECT (SELECT count(DISTINCT app_id) FROM
+                (SELECT app_id FROM catalog_entry UNION SELECT app_id FROM app) a) AS catalog_apps,
+                (SELECT count(DISTINCT app_id) FROM tracking_interval) AS tracked_apps""").fetchone()
+            for source in (PLAYED, SALES, SEARCH, CATALOG):
+                attempt = conn.execute("""SELECT a.dispatched_at,r.status,r.error FROM request_attempt a
+                    LEFT JOIN request_result r USING(attempt_id) WHERE a.source=%s ORDER BY a.dispatched_at DESC LIMIT 1""", (source,)).fetchone()
+                attempts[source] = None if attempt is None else {"at": iso(attempt["dispatched_at"]), "status": attempt["status"] or "uncertain", "error": attempt["error"]}
+                # Admission failures (quota/cooldown) have no dispatched attempt.
+                # Their durable run outcome still supersedes an earlier success.
+                completion = conn.execute("""SELECT c.finished_at,c.report FROM run_completion c
+                    JOIN collection_run r USING(run_id) WHERE r.sources ? %s
+                    ORDER BY c.finished_at DESC LIMIT 1""", (source,)).fetchone()
+                if completion and (attempt is None or completion["finished_at"] >= attempt["dispatched_at"]):
+                    outcomes = [row for row in completion["report"].get("sources", []) if row["source"] == source]
+                    if outcomes and outcomes[-1]["status"] == "failed":
+                        attempts[source] = {"at": iso(completion["finished_at"]), "status": "failed", "error": outcomes[-1].get("error")}
+                if source not in (PLAYED, SALES):
+                    continue
+                rows = conn.execute("SELECT * FROM discovery_snapshot WHERE source=%s ORDER BY observed_at DESC,capture_id DESC LIMIT 2", (source,)).fetchall()
+                latest = rows[0] if rows else None
+                if latest:
+                    from .sources.details import ChartImages
+                    artwork = ChartImages()
+                    raw = conn.execute("SELECT payload FROM capture WHERE capture_id=%s", (latest["capture_id"],)).fetchone()
+                    artwork.feed(bytes(raw["payload"]).decode("utf-8"))
+                    latest["value"]["items"] = [{**item, "image": artwork.images.get(item["app_id"])} for item in latest["value"]["items"]]
+                charts[source] = {"items": latest["value"]["items"] if latest else [],
+                                  "observed_at": iso(latest["observed_at"]) if latest else None,
+                                  "source_url": URLS[source], "scope": "Steam global chart; app entries only",
+                                  "age_seconds": max(0, int((datetime.now(timezone.utc)-latest["observed_at"]).total_seconds())) if latest else None}
+                if source == PLAYED:
+                    played_snapshots = rows
+        trending = {"items": [], "from": None, "to": None, "scope": "Positive concurrent-player growth among apps present in both latest most-played snapshots"}
+        if len(played_snapshots) == 2 and played_snapshots[0]["observed_at"] > played_snapshots[1]["observed_at"]:
+            latest, previous = played_snapshots
+            old = {item["app_id"]: item["players"] for item in previous["value"]["items"]}
+            trending.update({"from": iso(previous["observed_at"]), "to": iso(latest["observed_at"])})
+            for item in latest["value"]["items"]:
+                before = old.get(item["app_id"])
+                if before is not None and item["players"] > before:
+                    trending["items"].append({**item, "change": item["players"]-before,
+                                               "percent_change": round(100*(item["players"]-before)/before, 1) if before else None})
+            trending["items"].sort(key=lambda row: (-row["change"], row["app_id"]))
+        return {**counts, "charts": charts, "trending": trending, "latest_attempts": attempts,
+                "catalog_sync": self.catalog_sync_state()}
+
     def history(self, app_id: int, settings, hours: int = 24) -> dict | None:
         if type(hours) is not int or not 1 <= hours <= settings.web.max_history_days * 24:
             raise QueryLimitError("hours must be an integer from 1 through web.max_history_days × 24. Request a smaller history window.")
@@ -217,19 +339,29 @@ class Database:
                 digest.update(f"{row['capture_id']}:{row['checksum']}\n".encode())
             rows = conn.execute("""SELECT capture_id,app_id,observed_at,player_count AS value,parser_version FROM player_sample
                 UNION ALL SELECT capture_id,app_id,observed_at,NULL::bigint AS value,parser_version FROM app_name""").fetchall()
-            if len(rows) != len(captures):
+            global_rows = conn.execute("SELECT * FROM discovery_snapshot").fetchall()
+            if len(rows) + len(global_rows) != len(captures):
                 raise DatabaseError("Projection row counts do not match retained captures. Inspect a scratch restore before repairing projections.")
             by_id = {r["capture_id"]: r for r in rows}
             from .sources import REGISTRY
             for capture in captures:
-                projection = by_id[capture["capture_id"]]
                 adapter = REGISTRY[capture["source"]]
                 expected = adapter.parse(bytes(capture["payload"]),capture["app_id"])
+                if capture["app_id"] is None:
+                    projection = next(row for row in global_rows if row["capture_id"] == capture["capture_id"])
+                    entries = conn.execute("SELECT app_id,name FROM catalog_entry WHERE capture_id=%s ORDER BY app_id", (capture["capture_id"],)).fetchall()
+                    expected_entries = sorted([{"app_id": row["app_id"], "name": row["name"]} for row in expected["items"]], key=lambda row: row["app_id"])
+                    if (projection["value"] != expected or projection["parameters"] != capture["parameters"] or
+                        projection["observed_at"] != capture["received_at"] or projection["source"] != capture["source"] or
+                        projection["parser_version"] != adapter.VERSION or entries != expected_entries):
+                        raise DatabaseError("A discovery projection differs from its retained capture. Inspect a scratch restore before repairing projections.")
+                    continue
+                projection = by_id[capture["capture_id"]]
                 if adapter is players:
                     actual = projection["value"]
                 else:
                     actual = conn.execute("SELECT name FROM app_name WHERE capture_id=%s", (capture["capture_id"],)).fetchone()["name"]
                 if (actual != expected or projection["app_id"] != capture["app_id"] or projection["observed_at"] != capture["received_at"] or projection["parser_version"] != adapter.VERSION):
                     raise DatabaseError("A derived projection differs from its retained capture. Inspect a scratch restore before repairing projections.")
-        return {"status": "succeeded", "captures_replayed": len(captures), "projections_verified": len(rows),
+        return {"status": "succeeded", "captures_replayed": len(captures), "projections_verified": len(rows)+len(global_rows),
                 "capture_manifest_sha256": digest.hexdigest(), "canonical_history_changed": False}

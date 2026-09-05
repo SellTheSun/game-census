@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{{ game.name }} · Game Census{% endblock %}
+{% block content %}
+<p class="eyebrow"><a href="/">Steam catalog</a> / App {{ game.app_id }}</p>
+<h1>{{ game.name }}</h1>
+<p class="intro">Discovered on Steam. Player history is not tracked by this instance.</p>
+<p>Discovery captured {{ game.observed_at|timestamp }}.</p>
+<a class="outline-link" href="https://store.steampowered.com/app/{{ game.app_id }}/" rel="noreferrer">View on Steam ↗</a>
+<section class="tracked-panel"><h2>Available chart observations</h2>
+{% for chart in game.charts %}<p>{% if chart.source == 'steam_charts_mostplayed' %}Most played: rank {{ chart.rank }} · {{ chart.players|number }} concurrent players · {{ chart.peak_today|number }} Steam Peak Today{% else %}Global top sellers: revenue rank {{ chart.rank }}{% endif %}<br><small>{{ chart.observed_at|timestamp }}</small></p>{% else %}<p>No chart observations are available for this app.</p>{% endfor %}
+</section><section class="tracked-panel"><h2>Player history</h2><p>No tracked observations. Discovery does not enroll a game or create player samples. To start tracking, add its app ID to <code>tracking.app_ids</code> and run a bounded collection.</p></section>
+{% endblock %}
